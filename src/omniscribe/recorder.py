@@ -333,15 +333,35 @@ def check_inputs(mic_device, system_device, duration: float = 3.0) -> None:
     print()
 
     stop = threading.Event()
+    
+    # Create TUI audio callback for real-time level updates
+    tui_audio_callback = None
+    if tui_instance:
+        def make_callback(label: str):
+            def callback(arr: np.ndarray) -> None:
+                # Calculate RMS in dB and update TUI
+                rms = np.sqrt(np.mean(arr ** 2))
+                db = 20 * np.log10(max(rms, 1e-10))
+                if label == "mic":
+                    tui_instance.update_audio_levels(db, tui_instance.state.sys_level)
+                else:
+                    tui_instance.update_audio_levels(tui_instance.state.mic_level, db)
+            return callback
+        mic_callback = make_callback("mic")
+        sys_callback = make_callback("system")
+    else:
+        mic_callback = None
+        sys_callback = None
+    
     mic = (
-        PulseMonitorRecorder(mic_device, mic_ch, "mic", stop)
+        PulseMonitorRecorder(mic_device, mic_ch, "mic", stop, tui_callback=mic_callback)
         if use_parec_for_mic
-        else StreamRecorder(mic_device, mic_ch, "mic", stop)
+        else StreamRecorder(mic_device, mic_ch, "mic", stop, tui_callback=mic_callback)
     )
     sysrec = (
-        PulseMonitorRecorder(system_device, sys_ch, "system", stop)
+        PulseMonitorRecorder(system_device, sys_ch, "system", stop, tui_callback=sys_callback)
         if use_parec_for_system
-        else StreamRecorder(system_device, sys_ch, "system", stop)
+        else StreamRecorder(system_device, sys_ch, "system", stop, tui_callback=sys_callback)
     )
     mic.start()
     sysrec.start()
@@ -464,6 +484,7 @@ class PulseMonitorRecorder(threading.Thread):
         stop_event: threading.Event,
         samplerate: int = SAMPLE_RATE,
         blocksize: int = BLOCKSIZE,
+        tui_callback: Callable[[np.ndarray], None] | None = None,
     ):
         super().__init__(daemon=True, name=f"rec-{name}")
         self.source_name = source_name
@@ -475,6 +496,7 @@ class PulseMonitorRecorder(threading.Thread):
         self.queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
         self.error: Exception | None = None
         self._proc: subprocess.Popen | None = None
+        self.tui_callback = tui_callback
 
     def run(self) -> None:
         cmd = [
@@ -502,6 +524,9 @@ class PulseMonitorRecorder(threading.Thread):
                     # Drop a partial trailing sample, shouldn't normally happen
                     data = data[: -(len(data) % (self.channels * bytes_per_sample))]
                 arr = np.frombuffer(data, dtype=np.float32).reshape(-1, self.channels)
+                # Real-time TUI callback
+                if self.tui_callback is not None:
+                    self.tui_callback(arr)
                 try:
                     self.queue.put(arr.copy(), timeout=1.0)
                 except queue.Full:
@@ -533,7 +558,8 @@ class PulseMonitorRecorder(threading.Thread):
 class StreamRecorder(threading.Thread):
     """Reads from one input device and pushes blocks into a queue."""
 
-    def __init__(self, device, channels: int, name: str, stop_event: threading.Event):
+    def __init__(self, device, channels: int, name: str, stop_event: threading.Event,
+                 tui_callback: Callable[[np.ndarray], None] | None = None):
         super().__init__(daemon=True, name=f"rec-{name}")
         self.device = device
         self.channels = channels
@@ -541,10 +567,14 @@ class StreamRecorder(threading.Thread):
         self.stop_event = stop_event
         self.queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
         self.error: Exception | None = None
+        self.tui_callback = tui_callback
 
     def _callback(self, indata, frames, time_info, status):
         if status:
             print(f"[{self.label}] {status}", file=sys.stderr)
+        # Real-time TUI callback
+        if self.tui_callback is not None:
+            self.tui_callback(indata)
         # Copy because PortAudio reuses the buffer.
         self.queue.put(indata.copy())
 
@@ -672,14 +702,31 @@ def record(
     signal.signal(signal.SIGINT, _on_signal)
     signal.signal(signal.SIGTERM, _on_signal)
 
+    # Create TUI audio callback for real-time level updates (if not already done above)
+    if tui_instance and 'mic_callback' not in locals():
+        def make_callback(label: str):
+            def callback(arr: np.ndarray) -> None:
+                rms = np.sqrt(np.mean(arr ** 2))
+                db = 20 * np.log10(max(rms, 1e-10))
+                if label == "mic":
+                    tui_instance.update_audio_levels(db, tui_instance.state.sys_level)
+                else:
+                    tui_instance.update_audio_levels(tui_instance.state.mic_level, db)
+            return callback
+        mic_callback = make_callback("mic")
+        sys_callback = make_callback("system")
+    elif not tui_instance:
+        mic_callback = None
+        sys_callback = None
+
     if use_parec_for_mic:
-        mic = PulseMonitorRecorder(mic_device, mic_ch, "mic", stop)
+        mic = PulseMonitorRecorder(mic_device, mic_ch, "mic", stop, tui_callback=mic_callback)
     else:
-        mic = StreamRecorder(mic_device, mic_ch, "mic", stop)
+        mic = StreamRecorder(mic_device, mic_ch, "mic", stop, tui_callback=mic_callback)
     if use_parec_for_system:
-        sysrec = PulseMonitorRecorder(system_device, sys_ch, "system", stop)
+        sysrec = PulseMonitorRecorder(system_device, sys_ch, "system", stop, tui_callback=sys_callback)
     else:
-        sysrec = StreamRecorder(system_device, sys_ch, "system", stop)
+        sysrec = StreamRecorder(system_device, sys_ch, "system", stop, tui_callback=sys_callback)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     mixed = sf.SoundFile(
@@ -785,12 +832,6 @@ def record(
             sys_peak_block = float(np.abs(s2).max()) if s2.size else 0.0
             mic_peak_acc = max(mic_peak_acc, mic_peak_block)
             sys_peak_acc = max(sys_peak_acc, sys_peak_block)
-
-            # Update TUI audio levels
-            if tui_instance:
-                mic_db = 20 * np.log10(max(mic_peak_acc, 1e-10))
-                sys_db = 20 * np.log10(max(sys_peak_acc, 1e-10))
-                tui_instance.update_audio_levels(mic_db, sys_db)
 
             now = time.monotonic()
             if mic_peak_block > SILENCE_THRESHOLD:
