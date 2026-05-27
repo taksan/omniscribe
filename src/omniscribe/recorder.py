@@ -624,6 +624,7 @@ def record(
     min_logprob: float = -1.0,
     max_no_speech_prob: float = 0.5,
     enable_repetition_filter: bool = True,
+    split_channels: bool = False,
 ) -> None:
     use_parec_for_mic = isinstance(mic_device, str) and _looks_like_pulse_source(mic_device)
     use_parec_for_system = isinstance(system_device, str) and _looks_like_pulse_source(system_device)
@@ -827,9 +828,15 @@ def record(
 
             m2 = to_stereo(m) * mic_gain
             s2 = to_stereo(s) * sys_gain
-            mix = np.clip(m2 + s2, -1.0, 1.0)
 
-            mixed.write(mix)
+            if split_channels:
+                # Mic on Left (ch 0), System on Right (ch 1)
+                split = np.stack([m2[:, 0], s2[:, 0]], axis=1)
+                mixed.write(split)
+            else:
+                mix = np.clip(m2 + s2, -1.0, 1.0)
+                mixed.write(mix)
+
             if mic_file is not None:
                 mic_file.write(m2)
             if sys_file is not None:
@@ -944,6 +951,11 @@ def main() -> int:
                    help="run a short mic/system noise check and exit")
     p.add_argument("--check-seconds", type=float, default=3.0,
                    help="duration of the --check measurement window")
+    p.add_argument("--transcribe-file", type=Path, default=None,
+                   help="transcribe an existing WAV file (offline mode, no recording)")
+    p.add_argument("--input-split-channels", action="store_true",
+                   help="treat input file as split stereo: Left=Mic/You, Right=System/Them "
+                        "(transcribes each channel separately with labels)")
     default_name = f"meeting-{dt.datetime.now():%Y%m%d-%H%M%S}.wav"
     p.add_argument("-o", "--output", type=Path, default=Path("meetings") / default_name)
     p.add_argument("--mic", help="microphone device (index or name)")
@@ -984,6 +996,9 @@ def main() -> int:
                    help="maximum no_speech_prob for segment acceptance (default: 0.5)")
     p.add_argument("--no-repetition-filter", action="store_true",
                    help="disable filtering of repeated identical segments")
+    p.add_argument("--split-channels", action="store_true",
+                   help="save main WAV as split stereo: Left=Mic, Right=System "
+                        "(enables re-transcription with preserved speaker labels)")
     p.add_argument("--mic-label", default="You")
     p.add_argument("--system-label", default="Them")
     p.add_argument("--silence-alert-seconds", type=float, default=30.0,
@@ -1024,6 +1039,14 @@ def main() -> int:
         check_inputs(mic_dev, sys_dev, duration=config.check_seconds)
         return 0
 
+    # Handle offline transcription mode
+    if args.transcribe_file:
+        return _transcribe_file(
+            args.transcribe_file,
+            config,
+            split_channels=args.input_split_channels,
+        )
+
     mic_dev = resolve_mic_device(_coerce(config.mic))
     sys_dev = resolve_system_device(_coerce(config.system))
 
@@ -1060,10 +1083,101 @@ def main() -> int:
             min_logprob=config.min_logprob,
             max_no_speech_prob=config.max_no_speech_prob,
             enable_repetition_filter=config.enable_repetition_filter,
+            split_channels=config.split_channels,
         )
     except KeyboardInterrupt:
         # Force-quit path: finally block in record() already ran best-effort.
         return 130
+    return 0
+
+
+def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> int:
+    """Transcribe an existing audio file (offline mode)."""
+    import soundfile as sf
+    from .transcriber import LiveTranscriber
+
+    if not input_path.exists():
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
+        return 1
+
+    print(f"Transcribing: {input_path}")
+    
+    # Load audio
+    audio, sr = sf.read(str(input_path))
+    if audio.ndim == 1:
+        audio = audio[:, None]  # Make it 2D
+    
+    num_channels = audio.shape[1]
+    
+    if split_channels:
+        if num_channels < 2:
+            print("Error: --input-split-channels requires a stereo file", file=sys.stderr)
+            return 1
+        print(f"Split-channel mode: Ch0={config.mic_label}, Ch1={config.system_label}")
+        channels_to_process = [
+            (0, config.mic_label),
+            (1, config.system_label),
+        ]
+    else:
+        # Mono or stereo mixed - process as single source
+        channels_to_process = [(None, config.mic_label)]  # None = use all/mixed
+    
+    output_path = input_path.with_suffix(".txt")
+    
+    # Create transcriber
+    transcriber = LiveTranscriber(
+        output_path=output_path,
+        model_name=config.whisper_model,
+        device=config.whisper_device,
+        compute_type=config.whisper_compute_type,
+        language=config.language,
+        source_sample_rate=sr,
+        chunk_seconds=config.chunk_seconds,
+        beam_size=config.beam_size,
+        condition_on_previous_text=config.condition_on_previous_text,
+        initial_prompt=config.initial_prompt,
+        vad_min_silence_ms=config.vad_min_silence_ms,
+        on_output=None,
+        enable_hallucination_filter=config.enable_hallucination_filter,
+        hallucination_blocklist=Path(config.hallucination_blocklist) if config.hallucination_blocklist else None,
+        silence_threshold_db=config.silence_threshold_db,
+        per_segment_output=config.per_segment_output,
+        min_logprob=config.min_logprob,
+        max_no_speech_prob=config.max_no_speech_prob,
+        enable_repetition_filter=config.enable_repetition_filter,
+    )
+    
+    transcriber.start()
+    
+    # Process each channel or the mixed audio
+    chunk_samples = int(config.chunk_seconds * sr)
+    
+    for ch_idx, label in channels_to_process:
+        print(f"  Processing {label}...")
+        
+        if ch_idx is None:
+            # Use all channels (mono or already mixed)
+            if num_channels == 1:
+                ch_audio = audio[:, 0]
+            else:
+                # Mix down to mono
+                ch_audio = audio.mean(axis=1)
+        else:
+            # Use specific channel
+            ch_audio = audio[:, ch_idx]
+        
+        # Feed in chunks
+        for i in range(0, len(ch_audio), chunk_samples):
+            chunk = ch_audio[i:i+chunk_samples]
+            # Ensure stereo for transcriber (duplicate channel)
+            if chunk.ndim == 1:
+                chunk = np.stack([chunk, chunk], axis=1)
+            transcriber.feed(label, chunk)
+    
+    print("  Finalizing...")
+    transcriber.stop()
+    
+    print(f"Saved transcript: {output_path}")
     return 0
 
 
