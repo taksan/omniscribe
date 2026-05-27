@@ -80,7 +80,7 @@ class OmniScribeTUI:
     def __init__(self) -> None:
         self.state = TUIState()
         self._state_lock = threading.Lock()
-        self.console = Console()
+        self.console = Console(force_terminal=True, color_system="auto")
         self._live: Live | None = None
         self._stop_event = threading.Event()
         self._update_thread: threading.Thread | None = None
@@ -205,10 +205,9 @@ class OmniScribeTUI:
             content = Group(*[Text(line) for line in lines])
         
         return Panel(
-            content, 
-            title="[b cyan]Live Transcription", 
+            content,
+            title="[b cyan]Live Transcription",
             border_style="cyan",
-            height=20
         )
     
     def _make_footer(self) -> Panel:
