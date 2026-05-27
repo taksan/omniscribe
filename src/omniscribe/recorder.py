@@ -624,7 +624,7 @@ def record(
     min_logprob: float = -1.0,
     max_no_speech_prob: float = 0.5,
     enable_repetition_filter: bool = True,
-    split_channels: bool = False,
+    split_channels: bool = True,
 ) -> None:
     use_parec_for_mic = isinstance(mic_device, str) and _looks_like_pulse_source(mic_device)
     use_parec_for_system = isinstance(system_device, str) and _looks_like_pulse_source(system_device)
@@ -996,9 +996,10 @@ def main() -> int:
                    help="maximum no_speech_prob for segment acceptance (default: 0.5)")
     p.add_argument("--no-repetition-filter", action="store_true",
                    help="disable filtering of repeated identical segments")
+    p.add_argument("--no-split-channels", action="store_true",
+                   help="mix mic+system into both channels (default: split channels)")
     p.add_argument("--split-channels", action="store_true",
-                   help="save main WAV as split stereo: Left=Mic, Right=System "
-                        "(enables re-transcription with preserved speaker labels)")
+                   help=argparse.SUPPRESS)  # Hidden, kept for backwards compat
     p.add_argument("--mic-label", default="You")
     p.add_argument("--system-label", default="Them")
     p.add_argument("--silence-alert-seconds", type=float, default=30.0,

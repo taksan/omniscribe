@@ -55,8 +55,8 @@ class Config:
     max_no_speech_prob: float = 0.5
     enable_repetition_filter: bool = True
 
-    # Channel layout
-    split_channels: bool = False
+    # Channel layout (split by default for re-transcription with speaker labels)
+    split_channels: bool = True
 
     # Labeling
     mic_label: str = "You"
@@ -106,7 +106,7 @@ class Config:
             "min_logprob": -1.0,
             "max_no_speech_prob": 0.5,
             "enable_repetition_filter": True,
-            "split_channels": False,
+            "split_channels": True,
         }
 
         for key in arg_defaults:
@@ -140,7 +140,11 @@ class Config:
                     if value:  # Flag was used
                         setattr(self, flag, True)
 
-        # Map --split-channels flag to split_channels config
+        # Handle --no-split-channels flag (default is now True, so this disables it)
+        if hasattr(args, "no_split_channels"):
+            if args.no_split_channels:
+                self.split_channels = False
+        # Keep backwards compat with explicit --split-channels
         if hasattr(args, "split_channels"):
             if args.split_channels:
                 self.split_channels = True
@@ -211,7 +215,7 @@ def save_default_config(path: Path | None = None) -> Path:
             "min_logprob": "Minimum avg_logprob for segment acceptance (-1.0)",
             "max_no_speech_prob": "Maximum no_speech_prob for segment acceptance (0.5)",
             "enable_repetition_filter": "Filter repeated identical segments",
-            "split_channels": "Save main WAV as split stereo (L=Mic, R=System)",
+            "split_channels": "Save main WAV as split stereo (L=Mic, R=System) (default: true)",
             "mic_label": "Label for mic in transcript",
             "system_label": "Label for system in transcript",
             "silence_alert_seconds": "Seconds of silence before alert tone (0=disabled)",
