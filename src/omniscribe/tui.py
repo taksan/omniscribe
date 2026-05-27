@@ -10,12 +10,16 @@ Provides a live-updating dashboard with:
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
+
+from rich._terminal import terminal_size
+from rich.console import Console
 
 import numpy as np
 from rich.align import Align
@@ -59,6 +63,10 @@ class TUIState:
     recording: bool = False
     transcribing: bool = False
     
+    # Mute states (for visual indication only - audio is still recorded)
+    mic_muted: bool = False
+    sys_muted: bool = False
+    
     def add_message(self, msg: str) -> None:
         """Add a message with timestamp."""
         timestamp = time.strftime("%H:%M:%S")
@@ -79,6 +87,7 @@ class OmniScribeTUI:
         self._live: Live | None = None
         self._stop_event = threading.Event()
         self._update_thread: threading.Thread | None = None
+        self._input_thread: threading.Thread | None = None
         
     def _make_devices_panel(self) -> Panel:
         """Create the devices panel (top left)."""
@@ -140,25 +149,25 @@ class OmniScribeTUI:
     
     def _make_audio_panel(self) -> Panel:
         """Create the audio VU meters panel (top center)."""
-        mic_meter = self._make_vu_meter("MIC", self.state.mic_level, "red")
-        sys_meter = self._make_vu_meter("AUDIO", self.state.sys_level, "green")
+        # Mute status icons
+        mic_icon = "🔴" if self.state.mic_muted else "🎤"
+        sys_icon = "🔴" if self.state.sys_muted else "🔊"
         
-        # Side by side layout
-        content = Group(
-            Text("    MIC                AUDIO", style="bold"),
-            Text(),
-            f"[red] {self.state.mic_level:+5.1f}dB[/red]           [green]{self.state.sys_level:+5.1f}dB[/green]",
-        )
-        
-        # Create a more visual representation
+        # Create a more visual representation with status icons
         mic_bar = self._db_to_bar(self.state.mic_level, "red")
         sys_bar = self._db_to_bar(self.state.sys_level, "green")
         
         layout_text = Text()
-        layout_text.append("MIC\n", style="bold red")
-        layout_text.append(mic_bar + f" {self.state.mic_level:+5.1f}dB\n\n", style="red")
-        layout_text.append("AUDIO\n", style="bold green")
-        layout_text.append(sys_bar + f" {self.state.sys_level:+5.1f}dB", style="green")
+        layout_text.append(f"{mic_icon} MIC ", style="bold red")
+        if self.state.mic_muted:
+            layout_text.append("[MUTED]", style="bold red")
+        layout_text.append("\n", style="")
+        layout_text.append(mic_bar + f" {self.state.mic_level:+5.1f}dB\n\n", style="red" if not self.state.mic_muted else "dim red")
+        layout_text.append(f"{sys_icon} AUDIO ", style="bold green")
+        if self.state.sys_muted:
+            layout_text.append("[MUTED]", style="bold green")
+        layout_text.append("\n", style="")
+        layout_text.append(sys_bar + f" {self.state.sys_level:+5.1f}dB", style="green" if not self.state.sys_muted else "dim green")
         
         return Panel(layout_text, title="[b blue]Audio Levels", border_style="blue")
     
@@ -205,15 +214,38 @@ class OmniScribeTUI:
             height=20
         )
     
+    def _make_footer(self) -> Panel:
+        """Create the footer with keyboard shortcuts."""
+        help_text = Text()
+        help_text.append("Shortcuts: ", style="bold")
+        help_text.append("[m] ", style="bold cyan")
+        help_text.append("Mute Mic  ", style="dim")
+        help_text.append("[s] ", style="bold cyan")
+        help_text.append("Mute Sys  ", style="dim")
+        help_text.append("[q/Enter] ", style="bold cyan")
+        help_text.append("Stop", style="dim")
+        
+        status_parts = []
+        if self.state.mic_muted:
+            status_parts.append("🔴 MIC MUTED")
+        if self.state.sys_muted:
+            status_parts.append("🔴 SYS MUTED")
+        if status_parts:
+            help_text.append("   |   ", style="dim")
+            help_text.append("  ".join(status_parts), style="bold yellow")
+        
+        return Panel(Align.center(help_text, vertical="middle"), border_style="dim", height=3)
+    
     def _make_layout(self) -> Layout:
         """Create the full TUI layout (thread-safe)."""
         with self._state_lock:
             layout = Layout()
             
-            # Split into header and body
+            # Split into header, body, and footer
             layout.split_column(
                 Layout(name="header", size=3),
                 Layout(name="body"),
+                Layout(name="footer", size=3),
             )
             
             # Header with title
@@ -245,6 +277,7 @@ class OmniScribeTUI:
             layout["audio"].update(self._make_audio_panel())
             layout["messages"].update(self._make_messages_panel())
             layout["transcript"].update(self._make_transcript_panel())
+            layout["footer"].update(self._make_footer())
             
             return layout
     
@@ -272,13 +305,62 @@ class OmniScribeTUI:
         # Start background refresh thread
         self._refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
         self._refresh_thread.start()
+        
+        # Start keyboard input thread
+        self._input_thread = threading.Thread(target=self._input_loop, daemon=True)
+        self._input_thread.start()
+    
+    def toggle_mic_mute(self) -> None:
+        """Toggle microphone mute state."""
+        with self._state_lock:
+            self.state.mic_muted = not self.state.mic_muted
+            status = "MUTED" if self.state.mic_muted else "UNMUTED"
+            self.state.add_message(f"Microphone {status}")
+    
+    def toggle_sys_mute(self) -> None:
+        """Toggle system audio mute state."""
+        with self._state_lock:
+            self.state.sys_muted = not self.state.sys_muted
+            status = "MUTED" if self.state.sys_muted else "UNMUTED"
+            self.state.add_message(f"System audio {status}")
+    
+    def _input_loop(self) -> None:
+        """Background thread to handle keyboard input."""
+        # Save original terminal settings
+        import termios
+        import tty
+        
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        
+        try:
+            # Set terminal to raw mode for single-character input
+            tty.setraw(fd)
+            
+            while self.state.recording:
+                # Use select for non-blocking input with timeout
+                import select
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    char = sys.stdin.read(1)
+                    if char == 'm':
+                        self.toggle_mic_mute()
+                    elif char == 's':
+                        self.toggle_sys_mute()
+                    elif char in ('q', '\r', '\n'):
+                        self.state.add_message("Stop requested...")
+                        break
+        finally:
+            # Restore terminal settings
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     
     def stop(self) -> None:
         """Stop the TUI."""
         self.state.recording = False
-        # Wait for refresh thread to stop
+        # Wait for threads to stop
         if hasattr(self, '_refresh_thread') and self._refresh_thread.is_alive():
             self._refresh_thread.join(timeout=0.5)
+        if hasattr(self, '_input_thread') and self._input_thread and self._input_thread.is_alive():
+            self._input_thread.join(timeout=0.5)
         if self._live:
             self._live.stop()
             self._live = None
