@@ -40,6 +40,11 @@ dependencies = [
 
 [project.optional-dependencies]
 transcribe = []  # Kept for backwards compatibility
+diarize = [
+    "pyannote.audio>=3.1",
+    "torch>=2.0",
+    "torchaudio>=2.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",

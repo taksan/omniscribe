@@ -956,6 +956,10 @@ def main() -> int:
     p.add_argument("--input-split-channels", action="store_true",
                    help="treat input file as split stereo: Left=Mic/You, Right=System/Them "
                         "(transcribes each channel separately with labels)")
+    p.add_argument("--diarize", action="store_true",
+                   help="run speaker diarization on the audio file (requires 'omniscribe[diarize]' extra)")
+    p.add_argument("--num-speakers", type=int, default=2,
+                   help="expected number of speakers for diarization (default: 2)")
     default_name = f"meeting-{dt.datetime.now():%Y%m%d-%H%M%S}.wav"
     p.add_argument("-o", "--output", type=Path, default=Path("meetings") / default_name)
     p.add_argument("--mic", help="microphone device (index or name)")
@@ -1046,6 +1050,8 @@ def main() -> int:
             args.transcribe_file,
             config,
             split_channels=args.input_split_channels,
+            diarize=args.diarize,
+            num_speakers=args.num_speakers,
         )
 
     mic_dev = resolve_mic_device(_coerce(config.mic))
@@ -1092,7 +1098,13 @@ def main() -> int:
     return 0
 
 
-def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> int:
+def _transcribe_file(
+    input_path: Path,
+    config,
+    split_channels: bool = False,
+    diarize: bool = False,
+    num_speakers: int = 2,
+) -> int:
     """Transcribe an existing audio file (offline mode)."""
     import soundfile as sf
     from .transcriber import LiveTranscriber
@@ -1102,14 +1114,60 @@ def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> 
         return 1
 
     print(f"Transcribing: {input_path}")
-    
+
+    # Handle diarization mode (for legacy mixed files)
+    if diarize:
+        from .diarizer import check_pyannote_available, transcribe_with_diarization
+
+        if not check_pyannote_available():
+            print(
+                "Error: pyannote.audio is required for diarization.\n"
+                "Install with: pip install 'omniscribe[diarize]'",
+                file=sys.stderr,
+            )
+            return 1
+
+        output_path = input_path.with_suffix(".diarized.txt")
+
+        # Create transcriber for diarization (we'll use its Whisper settings)
+        transcriber = LiveTranscriber(
+            output_path=output_path,  # Will be overwritten by diarizer
+            model_name=config.whisper_model,
+            device=config.whisper_device,
+            compute_type=config.whisper_compute_type,
+            language=config.language,
+            source_sample_rate=48000,  # Will be detected from file
+            chunk_seconds=config.chunk_seconds,
+            beam_size=config.beam_size,
+            condition_on_previous_text=False,  # No context for diarization
+            initial_prompt=config.initial_prompt,
+            vad_min_silence_ms=config.vad_min_silence_ms,
+            on_output=None,
+            enable_hallucination_filter=config.enable_hallucination_filter,
+            hallucination_blocklist=Path(config.hallucination_blocklist) if config.hallucination_blocklist else None,
+            silence_threshold_db=config.silence_threshold_db,
+            per_segment_output=True,
+            min_logprob=config.min_logprob,
+            max_no_speech_prob=config.max_no_speech_prob,
+            enable_repetition_filter=config.enable_repetition_filter,
+        )
+
+        transcribe_with_diarization(
+            audio_path=input_path,
+            output_path=output_path,
+            transcriber=transcriber,
+            num_speakers=num_speakers,
+            device=config.whisper_device,
+        )
+        return 0
+
     # Load audio
     audio, sr = sf.read(str(input_path))
     if audio.ndim == 1:
         audio = audio[:, None]  # Make it 2D
-    
+
     num_channels = audio.shape[1]
-    
+
     if split_channels:
         if num_channels < 2:
             print("Error: --input-split-channels requires a stereo file", file=sys.stderr)
@@ -1122,9 +1180,9 @@ def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> 
     else:
         # Mono or stereo mixed - process as single source
         channels_to_process = [(None, config.mic_label)]  # None = use all/mixed
-    
+
     output_path = input_path.with_suffix(".txt")
-    
+
     # Create transcriber
     transcriber = LiveTranscriber(
         output_path=output_path,
@@ -1147,15 +1205,15 @@ def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> 
         max_no_speech_prob=config.max_no_speech_prob,
         enable_repetition_filter=config.enable_repetition_filter,
     )
-    
+
     transcriber.start()
-    
+
     # Process each channel or the mixed audio
     chunk_samples = int(config.chunk_seconds * sr)
-    
+
     for ch_idx, label in channels_to_process:
         print(f"  Processing {label}...")
-        
+
         if ch_idx is None:
             # Use all channels (mono or already mixed)
             if num_channels == 1:
@@ -1166,7 +1224,7 @@ def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> 
         else:
             # Use specific channel
             ch_audio = audio[:, ch_idx]
-        
+
         # Feed in chunks
         for i in range(0, len(ch_audio), chunk_samples):
             chunk = ch_audio[i:i+chunk_samples]
@@ -1174,10 +1232,10 @@ def _transcribe_file(input_path: Path, config, split_channels: bool = False) -> 
             if chunk.ndim == 1:
                 chunk = np.stack([chunk, chunk], axis=1)
             transcriber.feed(label, chunk)
-    
+
     print("  Finalizing...")
     transcriber.stop()
-    
+
     print(f"Saved transcript: {output_path}")
     return 0
 
