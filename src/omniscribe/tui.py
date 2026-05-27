@@ -288,15 +288,16 @@ class OmniScribeTUI:
 
     def start(self) -> None:
         """Start the TUI."""
+        # Clear screen for clean start
+        self.console.clear()
         self._live = Live(
             self._make_layout(),
             console=self.console,
             refresh_per_second=10,
-            screen=True  # Use alternate screen buffer
+            screen=False,  # Don't use alternate buffer (causes render issues)
+            auto_refresh=True,
         )
         self._live.start()
-        # Force immediate refresh to avoid initial blank screen
-        self._live.update(self._make_layout())
         self.state.recording = True
         self.state.add_message("TUI started. Recording...")
 
