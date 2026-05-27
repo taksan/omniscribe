@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from local_transcriber.transcriber import _SourceBuffer
+from omniscribe.transcriber import _SourceBuffer
 
 
 class TestSourceBuffer:

@@ -1,4 +1,4 @@
-# local-transcriber: meeting recorder
+# OmniScribe: meeting recorder
 
 Records **system audio (what you hear)** + **microphone** simultaneously and
 saves a single mixed WAV file. Works with any meeting app (Google Meet,
@@ -12,8 +12,8 @@ Tested on Linux (PulseAudio / PipeWire).
 ## Project Structure
 
 ```
-local-transcriber/
-├── src/local_transcriber/     # Main package
+omniscribe/
+├── src/omniscribe/            # Main package
 │   ├── __init__.py
 │   ├── recorder.py            # Audio recording logic
 │   └── transcriber.py         # Whisper transcription
@@ -39,16 +39,17 @@ Python package (editable install for development):
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[transcribe]"  # Include transcription dependencies
+# or: pip install omniscribe
 ```
 
 ## Quick start
 
 ```bash
 # 1. See devices and the auto-detected monitor source
-python -m local_transcriber --list
+python -m omniscribe --list
 
 # 2. Record. Plays back through your normal speakers/headphones meanwhile.
-python -m local_transcriber  # saves to meetings/meeting-YYYYMMDD-HHMMSS.wav
+python -m omniscribe  # saves to meetings/meeting-YYYYMMDD-HHMMSS.wav
 
 # Stop with Ctrl+C.
 ```
@@ -60,10 +61,10 @@ microphone defaults to the system default input.
 ## Useful options
 
 ```bash
-python -m local_transcriber -o my-meeting.wav          # custom output path
-python -m local_transcriber --mic 3 --system 7         # pick devices by index
-python -m local_transcriber --separate                 # also write *.mic.wav and *.system.wav
-python -m local_transcriber --mic-gain 1.2 --sys-gain 0.9
+python -m omniscribe -o my-meeting.wav          # custom output path
+python -m omniscribe --mic 3 --system 7         # pick devices by index
+python -m omniscribe --separate                 # also write *.mic.wav and *.system.wav
+python -m omniscribe --mic-gain 1.2 --sys-gain 0.9
 ```
 
 ## Configuration File
@@ -75,16 +76,16 @@ CLI flags override config file settings.
 
 ```bash
 # Create default config in current directory
-python -m local_transcriber --init-config
+python -m omniscribe --init-config
 
 # Or specify a custom location
-python -m local_transcriber --init-config --config ~/.config/local-transcriber/config.json
+python -m omniscribe --init-config --config ~/.config/omniscribe/config.json
 ```
 
 ### Config file locations (searched in order)
 
 1. `--config <path>` (explicit path)
-2. `~/.config/local-transcriber/config.json`
+2. `~/.config/omniscribe/config.json`
 3. `./config.json` (current directory)
 
 ### Example config.json
@@ -108,7 +109,8 @@ python -m local_transcriber --init-config --config ~/.config/local-transcriber/c
 Then simply run:
 
 ```bash
-python -m local_transcriber  # Uses settings from config.json
+python -m omniscribe  # Uses settings from config.json
+# or: omniscribe
 ```
 
 ## Tips for meetings
@@ -126,7 +128,7 @@ python -m local_transcriber  # Uses settings from config.json
 Before recording, verify your microphone is working and not too noisy:
 
 ```bash
-python -m local_transcriber --check
+python -m omniscribe --check
 ```
 
 This measures background noise, peak levels, and checks for clipping.
@@ -139,12 +141,12 @@ locally on each audio source in real time. The transcript is written to a
 `.txt` file next to the WAV and printed to the terminal as it is produced.
 
 ```bash
-python -m local_transcriber --transcribe                              # default model: small
-python -m local_transcriber --transcribe --whisper-model medium       # better quality
-python -m local_transcriber --transcribe --whisper-model large-v2 \
+python -m omniscribe --transcribe                              # default model: small
+python -m omniscribe --transcribe --whisper-model medium       # better quality
+python -m omniscribe --transcribe --whisper-model large-v2 \
                    --whisper-device cuda --whisper-compute-type float16
-python -m local_transcriber --transcribe --language en                # skip auto-detect
-python -m local_transcriber --transcribe --mic-label "Alice" --system-label "Bob"
+python -m omniscribe --transcribe --language en                # skip auto-detect
+python -m omniscribe --transcribe --mic-label "Alice" --system-label "Bob"
 ```
 
 Each line in the transcript is timestamped relative to the start of the
@@ -203,7 +205,7 @@ ruff format src tests
 Type checking:
 
 ```bash
-mypy src/local_transcriber
+mypy src/omniscribe
 ```
 
 ## Convert to MP3 / M4A

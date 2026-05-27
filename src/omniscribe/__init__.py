@@ -1,11 +1,11 @@
-"""Local Transcriber: Record meetings with system audio and microphone.
+"""OmniScribe: Record meetings with system audio and microphone.
 
 This package provides tools for simultaneous recording of system audio
 (what you hear) and microphone input, with optional live transcription
 using faster-whisper.
 
 Example:
-    >>> from local_transcriber import record_meeting
+    >>> from omniscribe import record_meeting
     >>> record_meeting(
     ...     output_path="meeting.wav",
     ...     transcribe=True,
@@ -16,6 +16,6 @@ Example:
 __version__ = "0.1.0"
 __all__ = ["record", "LiveTranscriber", "check_inputs", "list_devices", "Config", "load_config"]
 
-from local_transcriber.recorder import record, check_inputs, list_devices
-from local_transcriber.transcriber import LiveTranscriber
-from local_transcriber.config import Config, load_config
+from omniscribe.recorder import record, check_inputs, list_devices
+from omniscribe.transcriber import LiveTranscriber
+from omniscribe.config import Config, load_config

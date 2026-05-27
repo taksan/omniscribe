@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from local_transcriber.recorder import to_stereo, _dbfs, _meter_bar
-from local_transcriber.transcriber import _to_mono16k
+from omniscribe.recorder import to_stereo, _dbfs, _meter_bar
+from omniscribe.transcriber import _to_mono16k
 
 
 class TestToStereo:

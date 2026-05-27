@@ -1,4 +1,4 @@
-"""Configuration management for local-transcriber.
+"""Configuration management for OmniScribe.
 
 Supports JSON configuration files with CLI override.
 """
@@ -13,7 +13,7 @@ from typing import Any
 
 
 DEFAULT_CONFIG_PATHS = [
-    Path.home() / ".config" / "local-transcriber" / "config.json",
+    Path.home() / ".config" / "omniscribe" / "config.json",
     Path.cwd() / "config.json",
 ]
 
@@ -152,7 +152,7 @@ def save_default_config(path: Path | None = None) -> Path:
 
     # Add comments as a special key (will be at top after json sorting)
     config_with_help = {
-        "_comment": "local-transcriber configuration file. CLI flags override these settings.",
+        "_comment": "OmniScribe configuration file. CLI flags override these settings.",
         "_help": {
             "mic": "Microphone device name or index",
             "system": "System audio device (monitor source)",
