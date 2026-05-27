@@ -1,11 +1,15 @@
 # OmniScribe: meeting recorder
 
-Records **system audio (what you hear)** + **microphone** simultaneously and
-saves a single mixed WAV file. Works with any meeting app (Google Meet,
+Ever found yourself struggling to keep up with meeting notes? OmniScribe is here to help! 
+
+With OmniScribe you can record your meetings regardless of the platform you're using (Google Meet, 
+Microsoft Teams, Zoom, Discord, etc.) and get a transcript of the meeting in real-time.
+
+It will capture the system audio (what you hear) and your microphone input simultaneously
+and write to local WAV file. Works with any meeting app (Google Meet,
 Microsoft Teams, Zoom, Discord, ...) since it captures at the OS audio layer.
 
-Includes optional live transcription using faster-whisper with optimized
-settings for non-English languages.
+Includes optional live transcription using faster-whisper.
 
 Tested on Linux (PulseAudio / PipeWire).
 
@@ -38,8 +42,8 @@ Python package (editable install for development):
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[transcribe]"  # Include transcription dependencies
-# or: pip install omniscribe
+pip install -e .  # Editable install from source
+# or: pip install omniscribe  # From PyPI
 ```
 
 ## Quick start
@@ -186,7 +190,7 @@ chmod +x my-meeting.sh
 Install in editable mode with dev dependencies:
 
 ```bash
-pip install -e ".[transcribe,dev]"
+pip install -e ".[dev]"
 ```
 
 Run tests:

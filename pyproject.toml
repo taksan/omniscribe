@@ -29,13 +29,12 @@ dependencies = [
     "sounddevice>=0.4.6",
     "soundfile>=0.12.1",
     "numpy>=1.24",
-]
-
-[project.optional-dependencies]
-transcribe = [
     "faster-whisper>=1.0.0",
     "scipy>=1.10",
 ]
+
+[project.optional-dependencies]
+transcribe = []  # Kept for backwards compatibility
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
