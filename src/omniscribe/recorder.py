@@ -607,7 +607,7 @@ def record(
     whisper_device: str = "cpu",
     whisper_compute_type: str = "int8",
     language: str | None = None,
-    chunk_seconds: float = 10.0,
+    chunk_seconds: float = 6.0,
     mic_label: str = "You",
     system_label: str = "Them",
     silence_alert_seconds: float = 30.0,
@@ -617,6 +617,13 @@ def record(
     initial_prompt: str | None = None,
     vad_min_silence_ms: int = 500,
     tui: bool = False,
+    enable_hallucination_filter: bool = True,
+    hallucination_blocklist: Path | None = None,
+    silence_threshold_db: float = -50.0,
+    per_segment_output: bool = True,
+    min_logprob: float = -1.0,
+    max_no_speech_prob: float = 0.5,
+    enable_repetition_filter: bool = True,
 ) -> None:
     use_parec_for_mic = isinstance(mic_device, str) and _looks_like_pulse_source(mic_device)
     use_parec_for_system = isinstance(system_device, str) and _looks_like_pulse_source(system_device)
@@ -766,6 +773,13 @@ def record(
             initial_prompt=initial_prompt,
             vad_min_silence_ms=vad_min_silence_ms,
             on_output=on_output,
+            enable_hallucination_filter=enable_hallucination_filter,
+            hallucination_blocklist=hallucination_blocklist,
+            silence_threshold_db=silence_threshold_db,
+            per_segment_output=per_segment_output,
+            min_logprob=min_logprob,
+            max_no_speech_prob=max_no_speech_prob,
+            enable_repetition_filter=enable_repetition_filter,
         )
         transcriber.start()
         if tui_instance:
@@ -956,6 +970,20 @@ def main() -> int:
                         "nouns, names, jargon, e.g. 'Reuni\u00e3o sobre Kubernetes, Ansible, Tiago'")
     p.add_argument("--vad-min-silence-ms", type=int, default=500,
                    help="silence (ms) required to split speech in the VAD filter")
+    p.add_argument("--no-hallucination-filter", action="store_true",
+                   help="disable filtering of known Whisper hallucination patterns")
+    p.add_argument("--hallucination-blocklist", type=Path, default=None,
+                   help="path to custom file with hallucination patterns (one per line)")
+    p.add_argument("--silence-threshold-db", type=float, default=-50.0,
+                   help="skip audio chunks below this RMS dB threshold (default: -50)")
+    p.add_argument("--no-per-segment", action="store_true",
+                   help="output one line per chunk instead of per-segment timestamps")
+    p.add_argument("--min-logprob", type=float, default=-1.0,
+                   help="minimum avg_logprob for segment acceptance (default: -1.0)")
+    p.add_argument("--max-no-speech-prob", type=float, default=0.5,
+                   help="maximum no_speech_prob for segment acceptance (default: 0.5)")
+    p.add_argument("--no-repetition-filter", action="store_true",
+                   help="disable filtering of repeated identical segments")
     p.add_argument("--mic-label", default="You")
     p.add_argument("--system-label", default="Them")
     p.add_argument("--silence-alert-seconds", type=float, default=30.0,
@@ -1025,6 +1053,13 @@ def main() -> int:
             initial_prompt=config.initial_prompt,
             vad_min_silence_ms=config.vad_min_silence_ms,
             tui=args.tui,
+            enable_hallucination_filter=config.enable_hallucination_filter,
+            hallucination_blocklist=Path(config.hallucination_blocklist) if config.hallucination_blocklist else None,
+            silence_threshold_db=config.silence_threshold_db,
+            per_segment_output=config.per_segment_output,
+            min_logprob=config.min_logprob,
+            max_no_speech_prob=config.max_no_speech_prob,
+            enable_repetition_filter=config.enable_repetition_filter,
         )
     except KeyboardInterrupt:
         # Force-quit path: finally block in record() already ran best-effort.

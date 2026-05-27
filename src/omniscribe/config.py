@@ -40,11 +40,20 @@ class Config:
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
     language: str | None = None
-    chunk_seconds: float = 10.0
+    chunk_seconds: float = 6.0
     beam_size: int = 5
     condition_on_previous_text: bool = True
     initial_prompt: str | None = None
     vad_min_silence_ms: int = 500
+
+    # Transcription quality filtering
+    enable_hallucination_filter: bool = True
+    hallucination_blocklist: str | None = None
+    silence_threshold_db: float = -50.0
+    per_segment_output: bool = True
+    min_logprob: float = -1.0
+    max_no_speech_prob: float = 0.5
+    enable_repetition_filter: bool = True
 
     # Labeling
     mic_label: str = "You"
@@ -77,7 +86,7 @@ class Config:
             "whisper_device": "cpu",
             "whisper_compute_type": "int8",
             "language": None,
-            "chunk_seconds": 10.0,
+            "chunk_seconds": 6.0,
             "beam_size": 5,
             "condition_on_previous_text": True,
             "initial_prompt": None,
@@ -87,6 +96,13 @@ class Config:
             "silence_alert_seconds": 30.0,
             "show_meters": True,
             "check_seconds": 3.0,
+            "enable_hallucination_filter": True,
+            "hallucination_blocklist": None,
+            "silence_threshold_db": -50.0,
+            "per_segment_output": True,
+            "min_logprob": -1.0,
+            "max_no_speech_prob": 0.5,
+            "enable_repetition_filter": True,
         }
 
         for key in arg_defaults:
@@ -97,7 +113,8 @@ class Config:
 
         # Special handling for boolean flags that store True when present
         # These don't have defaults in argparse sense, we check if they were explicitly set
-        for flag in ["separate", "transcribe", "no_context", "no_meters"]:
+        for flag in ["separate", "transcribe", "no_context", "no_meters",
+                     "no_hallucination_filter", "no_per_segment", "no_repetition_filter"]:
             if hasattr(args, flag):
                 value = getattr(args, flag)
                 if flag == "no_context":
@@ -106,6 +123,15 @@ class Config:
                 elif flag == "no_meters":
                     if value:  # --no-meters was used
                         self.show_meters = False
+                elif flag == "no_hallucination_filter":
+                    if value:
+                        self.enable_hallucination_filter = False
+                elif flag == "no_per_segment":
+                    if value:
+                        self.per_segment_output = False
+                elif flag == "no_repetition_filter":
+                    if value:
+                        self.enable_repetition_filter = False
                 else:
                     if value:  # Flag was used
                         setattr(self, flag, True)
@@ -169,6 +195,13 @@ def save_default_config(path: Path | None = None) -> Path:
             "condition_on_previous_text": "Use prior text as context for next chunk",
             "initial_prompt": "Vocabulary hints for Whisper (names, jargon)",
             "vad_min_silence_ms": "VAD silence threshold in milliseconds",
+            "enable_hallucination_filter": "Filter known Whisper hallucination patterns",
+            "hallucination_blocklist": "Path to custom hallucination patterns file",
+            "silence_threshold_db": "Skip audio chunks below this dB threshold",
+            "per_segment_output": "Output each Whisper segment with its own timestamp",
+            "min_logprob": "Minimum avg_logprob for segment acceptance (-1.0)",
+            "max_no_speech_prob": "Maximum no_speech_prob for segment acceptance (0.5)",
+            "enable_repetition_filter": "Filter repeated identical segments",
             "mic_label": "Label for mic in transcript",
             "system_label": "Label for system in transcript",
             "silence_alert_seconds": "Seconds of silence before alert tone (0=disabled)",

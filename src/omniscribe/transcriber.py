@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import datetime as dt
 import queue
+import re
 import threading
 from pathlib import Path
 from typing import Callable, Optional
@@ -136,6 +137,69 @@ except ImportError as e:  # pragma: no cover
 
 WHISPER_SR = 16000
 
+# Known Whisper hallucination patterns (hardcoded defaults)
+DEFAULT_HALLUCINATION_PATTERNS = [
+    # Portuguese YouTube artifacts
+    "obrigado por assistir",
+    "se inscreva no canal",
+    "ative o sininho",
+    "acompanhe a avaliação",
+    "legendas disponíveis",
+    "inscreva-se",
+    # English YouTube artifacts
+    "thanks for watching",
+    "subscribe to the channel",
+    "click the bell",
+    "like and subscribe",
+    "check the description",
+    # Common Whisper looping artifacts
+    "the the the the",
+    "um um um um",
+    "e e e e",
+    # Generic/empty common hallucinations
+    " WEBVTT",
+    " kind: captions",
+    " Language: pt",
+]
+
+
+class HallucinationFilter:
+    """Filter to detect and reject Whisper hallucination patterns."""
+
+    def __init__(self, custom_blocklist_path: Path | None = None):
+        self.patterns: list[re.Pattern] = []
+        # Compile default patterns
+        for pattern in DEFAULT_HALLUCINATION_PATTERNS:
+            self.patterns.append(re.compile(re.escape(pattern), re.IGNORECASE))
+        # Load custom patterns from file if provided
+        if custom_blocklist_path and custom_blocklist_path.exists():
+            self._load_custom_patterns(custom_blocklist_path)
+
+    def _load_custom_patterns(self, path: Path) -> None:
+        """Load custom patterns from a text file (one pattern per line)."""
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        self.patterns.append(re.compile(re.escape(line), re.IGNORECASE))
+        except Exception as e:
+            print(f"Warning: Could not load custom blocklist from {path}: {e}")
+
+    def is_hallucination(self, text: str) -> bool:
+        """Check if text matches any hallucination pattern."""
+        text_lower = text.lower()
+        for pattern in self.patterns:
+            if pattern.search(text_lower):
+                return True
+        # Also detect excessive repetition (same word 4+ times in a row)
+        words = text_lower.split()
+        if len(words) >= 4:
+            for i in range(len(words) - 3):
+                if words[i] == words[i+1] == words[i+2] == words[i+3]:
+                    return True
+        return False
+
 
 def _to_mono16k(block: np.ndarray, src_sr: int) -> np.ndarray:
     """Down-mix to mono and resample to 16 kHz float32."""
@@ -191,13 +255,20 @@ class LiveTranscriber:
         compute_type: str = "int8",
         language: Optional[str] = None,
         source_sample_rate: int = 48000,
-        chunk_seconds: float = 10.0,
+        chunk_seconds: float = 6.0,
         min_chunk_seconds: float = 2.0,
         beam_size: int = 5,
         condition_on_previous_text: bool = True,
         initial_prompt: Optional[str] = None,
         vad_min_silence_ms: int = 500,
         on_output: Optional[Callable[[str], None]] = None,
+        enable_hallucination_filter: bool = True,
+        hallucination_blocklist: Path | None = None,
+        silence_threshold_db: float = -50.0,
+        per_segment_output: bool = True,
+        min_logprob: float = -1.0,
+        max_no_speech_prob: float = 0.5,
+        enable_repetition_filter: bool = True,
     ):
         self.output_path = output_path
         self.model_name = model_name
@@ -212,6 +283,16 @@ class LiveTranscriber:
         self.initial_prompt = initial_prompt
         self.vad_min_silence_ms = vad_min_silence_ms
         self._on_output = on_output
+        self.per_segment_output = per_segment_output
+        self.min_logprob = min_logprob
+        self.max_no_speech_prob = max_no_speech_prob
+        self.silence_threshold_db = silence_threshold_db
+        self.enable_repetition_filter = enable_repetition_filter
+
+        # Hallucination filter
+        self._hallucination_filter: Optional[HallucinationFilter] = None
+        if enable_hallucination_filter:
+            self._hallucination_filter = HallucinationFilter(hallucination_blocklist)
 
         self._buffers: dict[str, _SourceBuffer] = {}
         self._buffers_lock = threading.Lock()
@@ -224,6 +305,9 @@ class LiveTranscriber:
         self._start_wallclock: Optional[dt.datetime] = None
         self._file = None
         self._gpu_detected: bool = False
+        # Track recent outputs for repetition detection
+        self._recent_outputs: dict[str, list[str]] = {}
+        self._outputs_lock = threading.Lock()
 
     # ------------------------------------------------------------------ public
     def start(self) -> None:
@@ -322,6 +406,41 @@ class LiveTranscriber:
             self._file.close()
             self._file = None
 
+    def _check_silence(self, audio: np.ndarray) -> bool:
+        """Check if audio chunk is predominantly silence.
+        
+        Returns True if the audio should be skipped (is silence).
+        """
+        if audio.size == 0:
+            return True
+        # Calculate RMS in dB
+        rms = np.sqrt(np.mean(audio ** 2))
+        db = 20 * np.log10(max(rms, 1e-10))
+        return db < self.silence_threshold_db
+
+    def _is_repetition(self, label: str, text: str) -> bool:
+        """Check if this text is a repetition of recent output from same source."""
+        if not self.enable_repetition_filter:
+            return False
+        with self._outputs_lock:
+            recent = self._recent_outputs.get(label, [])
+            for prev in recent:
+                # Simple containment check - if one is contained in the other
+                if text in prev or prev in text:
+                    return True
+            return False
+
+    def _record_output(self, label: str, text: str) -> None:
+        """Record output for repetition detection."""
+        if not self.enable_repetition_filter:
+            return
+        with self._outputs_lock:
+            if label not in self._recent_outputs:
+                self._recent_outputs[label] = []
+            self._recent_outputs[label].append(text)
+            # Keep only last 5 outputs
+            self._recent_outputs[label] = self._recent_outputs[label][-5:]
+
     # ----------------------------------------------------------------- internal
     def _run(self) -> None:
         while not self._stop.is_set():
@@ -338,13 +457,22 @@ class LiveTranscriber:
 
     def _transcribe(self, label: str, audio: np.ndarray) -> None:
         assert self._model is not None
+        
+        # Check for silence before transcribing
+        if self._check_silence(audio):
+            return
+        
         # Build the prompt fed to Whisper for this chunk: a static initial_prompt
         # (vocabulary hints) plus the recent prior transcript for this source.
         prior = self._prior_text.get(label, "")
         prompt_parts = [p for p in (self.initial_prompt, prior) if p]
         prompt = " ".join(prompt_parts).strip() or None
+        
+        # Track chunk start time for per-segment timestamps
+        chunk_start_ts = dt.datetime.now()
+        
         try:
-            segments, _info = self._model.transcribe(
+            segments, info = self._model.transcribe(
                 audio,
                 language=self.language,
                 vad_filter=True,
@@ -356,7 +484,7 @@ class LiveTranscriber:
                 no_speech_threshold=0.6,
                 compression_ratio_threshold=2.4,
             )
-            text_parts = [seg.text.strip() for seg in segments if seg.text.strip()]
+            segments_list = list(segments)
         except Exception as e:  # noqa: BLE001
             msg = str(e)
             if ("libcublas" in msg or "CUDA" in msg) and self.device != "cpu":
@@ -373,22 +501,78 @@ class LiveTranscriber:
                     return
             print(f"\n[transcribe error: {e}]")
             return
-        if not text_parts:
+        
+        if not segments_list:
             return
-        text = " ".join(text_parts)
+        
+        # Process each segment individually
+        valid_segments = []
+        for seg in segments_list:
+            text = seg.text.strip()
+            if not text:
+                continue
+            
+            # Confidence-based filtering
+            if hasattr(seg, 'avg_logprob') and seg.avg_logprob < self.min_logprob:
+                continue
+            if hasattr(seg, 'no_speech_prob') and seg.no_speech_prob > self.max_no_speech_prob:
+                continue
+            if hasattr(seg, 'compression_ratio') and seg.compression_ratio > 2.0:
+                continue
+            
+            # Hallucination filter
+            if self._hallucination_filter and self._hallucination_filter.is_hallucination(text):
+                print(f"[Hallucination filtered: {text[:50]}...]")
+                continue
+            
+            # Repetition filter
+            if self._is_repetition(label, text):
+                print(f"[Repetition filtered: {text[:50]}...]")
+                continue
+            
+            valid_segments.append(seg)
+        
+        if not valid_segments:
+            return
+        
+        # Build combined text for context rolling
+        all_text = " ".join(seg.text.strip() for seg in valid_segments)
+        
         # Keep the tail of recent text (~200 chars) as context for the next chunk
         # of this same source. Whisper truncates prompts to ~224 tokens.
         if self.condition_on_previous_text:
-            combined = (self._prior_text.get(label, "") + " " + text).strip()
+            combined = (self._prior_text.get(label, "") + " " + all_text).strip()
             self._prior_text[label] = combined[-400:]
-        ts = dt.datetime.now()
-        rel = ts - (self._start_wallclock or ts)
-        secs = int(rel.total_seconds())
-        hh, rem = divmod(secs, 3600)
-        mm, ss = divmod(rem, 60)
-        line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: {text}"
-        self._write_line(line)
-        print("\n" + line)
+        
+        # Output segments
+        if self.per_segment_output:
+            # Per-segment output with individual timestamps
+            chunk_start_rel = chunk_start_ts - (self._start_wallclock or chunk_start_ts)
+            chunk_start_secs = int(chunk_start_rel.total_seconds())
+            
+            for seg in valid_segments:
+                # Calculate segment timestamp within the chunk
+                seg_start_offset = int(seg.start)
+                seg_timestamp = chunk_start_secs + seg_start_offset
+                
+                hh, rem = divmod(seg_timestamp, 3600)
+                mm, ss = divmod(rem, 60)
+                line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: {seg.text.strip()}"
+                self._write_line(line)
+                print("\n" + line)
+                self._record_output(label, seg.text.strip())
+        else:
+            # Legacy single-line output per chunk
+            text = " ".join(seg.text.strip() for seg in valid_segments)
+            ts = dt.datetime.now()
+            rel = ts - (self._start_wallclock or ts)
+            secs = int(rel.total_seconds())
+            hh, rem = divmod(secs, 3600)
+            mm, ss = divmod(rem, 60)
+            line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: {text}"
+            self._write_line(line)
+            print("\n" + line)
+            self._record_output(label, text)
 
     def _write_line(self, line: str) -> None:
         with self._writer_lock:

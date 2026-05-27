@@ -18,9 +18,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from rich._terminal import terminal_size
-from rich.console import Console
-
 import numpy as np
 from rich.align import Align
 from rich.console import Console, Group
