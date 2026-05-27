@@ -27,11 +27,30 @@ def _preload_cuda_libs() -> list[str]:
     import glob
     import site
     import sys
+    import os
 
     loaded: list[str] = []
     search_roots: list[str] = []
+
+    # Add standard site-packages locations
     for base in {sys.prefix, *site.getsitepackages(), site.getusersitepackages()}:
-        search_roots.append(base)
+        if base:
+            search_roots.append(base)
+
+    # Also check inside the package paths for nvidia libraries
+    for site_path in site.getsitepackages():
+        nvidia_base = Path(site_path) / "nvidia"
+        if nvidia_base.exists():
+            search_roots.append(str(nvidia_base))
+
+    # Check common installation paths
+    common_paths = [
+        Path.home() / ".local" / "lib" / "python" / f"{sys.version_info.major}.{sys.version_info.minor}" / "site-packages",
+        Path(sys.executable).parent.parent / "lib" / "python" / f"{sys.version_info.major}.{sys.version_info.minor}" / "site-packages",
+    ]
+    for p in common_paths:
+        if p.exists():
+            search_roots.append(str(p))
 
     patterns = [
         "**/nvidia/cublas/lib/libcublas.so.12",
@@ -42,7 +61,11 @@ def _preload_cuda_libs() -> list[str]:
         "**/nvidia/cudnn/lib/libcudnn_ops.so.9",
         "**/nvidia/cudnn/lib/libcudnn_cnn.so.9",
         "**/nvidia/cuda_nvrtc/lib/libnvrtc.so.12",
+        # Also try direct patterns
+        "nvidia/cublas/lib/libcublas.so.12",
+        "nvidia/cudnn/lib/libcudnn*.so.9",
     ]
+
     seen: set[str] = set()
     for root in search_roots:
         for pat in patterns:
@@ -53,9 +76,49 @@ def _preload_cuda_libs() -> list[str]:
                 try:
                     ctypes.CDLL(path, mode=ctypes.RTLD_GLOBAL)
                     loaded.append(path)
-                except OSError:
+                except OSError as e:
+                    # Log but don't fail - some libs might fail but others work
                     pass
+
     return loaded
+
+
+def _check_cuda_available() -> tuple[bool, str]:
+    """Check if CUDA is available and return diagnostics."""
+    import subprocess
+    import shutil
+
+    checks = []
+
+    # Check nvidia-smi
+    if shutil.which("nvidia-smi"):
+        try:
+            result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name,driver_version,memory.total", "--format=csv,noheader"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                checks.append(f"GPU detected: {result.stdout.strip()}")
+            else:
+                checks.append("nvidia-smi found but failed to query GPU")
+        except Exception as e:
+            checks.append(f"nvidia-smi error: {e}")
+    else:
+        checks.append("nvidia-smi not found (NVIDIA driver not installed?)")
+
+    # Check for nvidia pip packages
+    try:
+        import pkg_resources
+        nvidia_packages = [d for d in pkg_resources.working_set if d.project_name.startswith("nvidia-")]
+        if nvidia_packages:
+            checks.append(f"NVIDIA pip packages: {', '.join(p.project_name for p in nvidia_packages)}")
+        else:
+            checks.append("No nvidia-* pip packages found (try: pip install nvidia-cublas-cu12 nvidia-cudnn-cu12)")
+    except Exception as e:
+        checks.append(f"Could not check pip packages: {e}")
+
+    cuda_available = any("GPU detected" in c for c in checks)
+    return cuda_available, "\n".join(checks)
 
 
 try:
@@ -170,14 +233,34 @@ class LiveTranscriber:
             kwargs["device"] = self.device
         if self.compute_type != "auto":
             kwargs["compute_type"] = self.compute_type
+
+        cuda_available = False
         if self.device in ("cuda", "auto"):
+            cuda_available, cuda_info = _check_cuda_available()
+            print(f"CUDA check:\n{cuda_info}")
+
             loaded = _preload_cuda_libs()
             if loaded:
                 print(f"Preloaded {len(loaded)} CUDA libs from pip wheels.")
+            elif cuda_available:
+                print("WARNING: No CUDA libs preloaded. GPU may fail.")
+                print("Try: pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12")
+
         try:
             self._model = WhisperModel(self.model_name, **kwargs)
         except Exception as e:  # noqa: BLE001
-            if self.device in ("auto", "cuda"):
+            error_msg = str(e)
+            if self.device in ("auto", "cuda") and ("libcublas" in error_msg or "CUDA" in error_msg):
+                print(f"\n[GPU Error: {error_msg}]")
+                print("\nTroubleshooting:")
+                print("1. Install NVIDIA pip packages:")
+                print("   pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12")
+                print("2. Or use CPU mode: --whisper-device cpu")
+                print("\nFalling back to CPU/int8...")
+                self._model = WhisperModel(
+                    self.model_name, device="cpu", compute_type="int8"
+                )
+            elif self.device in ("auto", "cuda"):
                 print(f"GPU load failed ({e}); falling back to CPU/int8.")
                 self._model = WhisperModel(
                     self.model_name, device="cpu", compute_type="int8"
