@@ -13,7 +13,7 @@ import datetime as dt
 import queue
 import threading
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -197,6 +197,7 @@ class LiveTranscriber:
         condition_on_previous_text: bool = True,
         initial_prompt: Optional[str] = None,
         vad_min_silence_ms: int = 500,
+        on_output: Optional[Callable[[str], None]] = None,
     ):
         self.output_path = output_path
         self.model_name = model_name
@@ -210,6 +211,7 @@ class LiveTranscriber:
         self.condition_on_previous_text = condition_on_previous_text
         self.initial_prompt = initial_prompt
         self.vad_min_silence_ms = vad_min_silence_ms
+        self._on_output = on_output
 
         self._buffers: dict[str, _SourceBuffer] = {}
         self._buffers_lock = threading.Lock()
@@ -382,4 +384,6 @@ class LiveTranscriber:
         with self._writer_lock:
             if self._file is not None:
                 self._file.write(line + "\n")
+            if self._on_output is not None:
+                self._on_output(line)
                 self._file.flush()

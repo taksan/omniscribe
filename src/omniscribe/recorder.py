@@ -37,6 +37,7 @@ import sounddevice as sd
 import soundfile as sf
 
 from .config import Config, load_config, save_default_config
+from . import tui as tui_module
 
 
 SAMPLE_RATE = 48000
@@ -585,6 +586,7 @@ def record(
     condition_on_previous_text: bool = True,
     initial_prompt: str | None = None,
     vad_min_silence_ms: int = 500,
+    tui: bool = False,
 ) -> None:
     use_parec_for_mic = isinstance(mic_device, str) and _looks_like_pulse_source(mic_device)
     use_parec_for_system = isinstance(system_device, str) and _looks_like_pulse_source(system_device)
@@ -610,28 +612,42 @@ def record(
         else _device_label(system_device, "input")
     )
 
-    print()
-    print("=" * 72)
-    print("Recording from:")
-    print(
-        f"  Mic    : {mic_name}  ({mic_ch}ch"
-        + (", via parec" if use_parec_for_mic else "")
-        + ")"
-    )
-    print(
-        f"  System : {sys_name}  ({sys_ch}ch"
-        + (", via parec" if use_parec_for_system else "")
-        + ")"
-    )
-    print()
-    print(f"Output WAV : {output}")
-    if separate:
-        print(f"             + {output.with_name(output.stem + '.mic.wav')}")
-        print(f"             + {output.with_name(output.stem + '.system.wav')}")
-    if silence_alert_seconds > 0:
-        print(f"Silence alert: after {int(silence_alert_seconds)}s of silence on a source")
-    print("=" * 72)
-    print("Recording... press Ctrl+C to stop (Ctrl+C twice to force quit).")
+    # Initialize TUI if requested
+    tui_instance = None
+    if tui:
+        tui_instance = tui_module.create_tui()
+        tui_instance.set_devices(mic_name, sys_name, mic_gain, sys_gain)
+        tui_instance.set_transcription_config(
+            model=whisper_model,
+            device=whisper_device,
+            language=language,
+            initial_prompt=initial_prompt,
+            gpu_detected=False,  # Will be updated by transcriber
+        )
+        tui_instance.start()
+    else:
+        print()
+        print("=" * 72)
+        print("Recording from:")
+        print(
+            f"  Mic    : {mic_name}  ({mic_ch}ch"
+            + (", via parec" if use_parec_for_mic else "")
+            + ")"
+        )
+        print(
+            f"  System : {sys_name}  ({sys_ch}ch"
+            + (", via parec" if use_parec_for_system else "")
+            + ")"
+        )
+        print()
+        print(f"Output WAV : {output}")
+        if separate:
+            print(f"             + {output.with_name(output.stem + '.mic.wav')}")
+            print(f"             + {output.with_name(output.stem + '.system.wav')}")
+        if silence_alert_seconds > 0:
+            print(f"Silence alert: after {int(silence_alert_seconds)}s of silence on a source")
+        print("=" * 72)
+        print("Recording... press Ctrl+C to stop (Ctrl+C twice to force quit).")
     print()
 
     stop = threading.Event()
@@ -685,6 +701,11 @@ def record(
         from .transcriber import LiveTranscriber
 
         transcript_path = output.with_suffix(".txt")
+        # Set up TUI callback if enabled
+        on_output = None
+        if tui_instance:
+            on_output = tui_instance.add_transcript
+
         transcriber = LiveTranscriber(
             output_path=transcript_path,
             model_name=whisper_model,
@@ -697,9 +718,13 @@ def record(
             condition_on_previous_text=condition_on_previous_text,
             initial_prompt=initial_prompt,
             vad_min_silence_ms=vad_min_silence_ms,
+            on_output=on_output,
         )
         transcriber.start()
-        print(f"Transcript: {transcript_path}")
+        if tui_instance:
+            tui_instance.state.gpu_detected = getattr(transcriber, '_gpu_detected', False)
+        else:
+            print(f"Transcript: {transcript_path}")
 
     mic.start()
     sysrec.start()
@@ -761,6 +786,12 @@ def record(
             mic_peak_acc = max(mic_peak_acc, mic_peak_block)
             sys_peak_acc = max(sys_peak_acc, sys_peak_block)
 
+            # Update TUI audio levels
+            if tui_instance:
+                mic_db = 20 * np.log10(max(mic_peak_acc, 1e-10))
+                sys_db = 20 * np.log10(max(sys_peak_acc, 1e-10))
+                tui_instance.update_audio_levels(mic_db, sys_db)
+
             now = time.monotonic()
             if mic_peak_block > SILENCE_THRESHOLD:
                 last_signal_time["mic"] = now
@@ -789,6 +820,7 @@ def record(
 
             if (
                 show_meters
+                and not tui_instance  # TUI has its own meters
                 and not stop.is_set()
                 and (now - last_render) >= METER_REFRESH_S
             ):
@@ -807,7 +839,10 @@ def record(
                 sys_peak_acc *= 0.4
     finally:
         stop.set()
-        print()  # break out of the in-place "HH:MM:SS recorded" line
+        if tui_instance:
+            tui_instance.stop()
+        else:
+            print()  # break out of the in-place "HH:MM:SS recorded" line
 
         print("  [1/3] Stopping audio capture threads...", flush=True)
         mic.join(timeout=2)
@@ -887,6 +922,8 @@ def main() -> int:
                         "on a source (0 to disable)")
     p.add_argument("--no-meters", action="store_true",
                    help="disable the live ASCII level meters")
+    p.add_argument("--tui", action="store_true",
+                   help="use fancy terminal UI with live transcription display")
     args = p.parse_args()
 
     # Handle --init-config: create default config and exit
@@ -946,6 +983,7 @@ def main() -> int:
             condition_on_previous_text=config.condition_on_previous_text,
             initial_prompt=config.initial_prompt,
             vad_min_silence_ms=config.vad_min_silence_ms,
+            tui=args.tui,
         )
     except KeyboardInterrupt:
         # Force-quit path: finally block in record() already ran best-effort.
