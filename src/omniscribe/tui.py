@@ -74,6 +74,7 @@ class OmniScribeTUI:
     
     def __init__(self) -> None:
         self.state = TUIState()
+        self._state_lock = threading.Lock()
         self.console = Console()
         self._live: Live | None = None
         self._stop_event = threading.Event()
@@ -205,47 +206,57 @@ class OmniScribeTUI:
         )
     
     def _make_layout(self) -> Layout:
-        """Create the full TUI layout."""
-        layout = Layout()
-        
-        # Split into header and body
-        layout.split_column(
-            Layout(name="header", size=3),
-            Layout(name="body"),
-        )
-        
-        # Header with title
-        title = Align.center(
-            Text("OmniScribe", style="bold blue"),
-            vertical="middle"
-        )
-        layout["header"].update(
-            Panel(title, border_style="blue")
-        )
-        
-        # Body split into top row and transcript
-        layout["body"].split_column(
-            Layout(name="top_row", size=12),
-            Layout(name="transcript"),
-        )
-        
-        # Top row with 4 panels
-        layout["top_row"].split_row(
-            Layout(name="devices", ratio=1),
-            Layout(name="transcription", ratio=1),
-            Layout(name="audio", ratio=1),
-            Layout(name="messages", ratio=1),
-        )
-        
-        # Update each panel
-        layout["devices"].update(self._make_devices_panel())
-        layout["transcription"].update(self._make_transcription_panel())
-        layout["audio"].update(self._make_audio_panel())
-        layout["messages"].update(self._make_messages_panel())
-        layout["transcript"].update(self._make_transcript_panel())
-        
-        return layout
+        """Create the full TUI layout (thread-safe)."""
+        with self._state_lock:
+            layout = Layout()
+            
+            # Split into header and body
+            layout.split_column(
+                Layout(name="header", size=3),
+                Layout(name="body"),
+            )
+            
+            # Header with title
+            title = Align.center(
+                Text("OmniScribe", style="bold blue"),
+                vertical="middle"
+            )
+            layout["header"].update(
+                Panel(title, border_style="blue")
+            )
+            
+            # Body split into top row and transcript
+            layout["body"].split_column(
+                Layout(name="top_row", size=12),
+                Layout(name="transcript"),
+            )
+            
+            # Top row with 4 panels
+            layout["top_row"].split_row(
+                Layout(name="devices", ratio=1),
+                Layout(name="transcription", ratio=1),
+                Layout(name="audio", ratio=1),
+                Layout(name="messages", ratio=1),
+            )
+            
+            # Update each panel
+            layout["devices"].update(self._make_devices_panel())
+            layout["transcription"].update(self._make_transcription_panel())
+            layout["audio"].update(self._make_audio_panel())
+            layout["messages"].update(self._make_messages_panel())
+            layout["transcript"].update(self._make_transcript_panel())
+            
+            return layout
     
+    def _refresh_loop(self) -> None:
+        """Background thread to refresh the TUI."""
+        while self.state.recording and self._live:
+            try:
+                self.update()
+                time.sleep(0.05)  # 20 FPS refresh
+            except Exception:
+                break
+
     def start(self) -> None:
         """Start the TUI."""
         self._live = Live(
@@ -257,10 +268,17 @@ class OmniScribeTUI:
         self._live.start()
         self.state.recording = True
         self.state.add_message("TUI started. Recording...")
+        
+        # Start background refresh thread
+        self._refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
+        self._refresh_thread.start()
     
     def stop(self) -> None:
         """Stop the TUI."""
         self.state.recording = False
+        # Wait for refresh thread to stop
+        if hasattr(self, '_refresh_thread') and self._refresh_thread.is_alive():
+            self._refresh_thread.join(timeout=0.5)
         if self._live:
             self._live.stop()
             self._live = None
@@ -271,17 +289,20 @@ class OmniScribeTUI:
             self._live.update(self._make_layout())
     
     def update_audio_levels(self, mic_db: float, sys_db: float) -> None:
-        """Update the audio level displays."""
-        self.state.mic_level = mic_db
-        self.state.sys_level = sys_db
+        """Update the audio level displays (thread-safe)."""
+        with self._state_lock:
+            self.state.mic_level = mic_db
+            self.state.sys_level = sys_db
     
     def add_message(self, msg: str) -> None:
-        """Add a message to the log."""
-        self.state.add_message(msg)
+        """Add a message to the log (thread-safe)."""
+        with self._state_lock:
+            self.state.add_message(msg)
     
     def add_transcript(self, line: str) -> None:
-        """Add a transcript line."""
-        self.state.add_transcript(line)
+        """Add a transcript line (thread-safe)."""
+        with self._state_lock:
+            self.state.add_transcript(line)
     
     def set_devices(
         self, 

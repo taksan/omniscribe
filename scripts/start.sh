@@ -16,14 +16,12 @@ source .venv/bin/activate
 #   --whisper-device: cpu or cuda
 #   --chunk-seconds: 6-15 (longer = better context)
 
-python -m local_transcriber \
-    -o meetings/meeting-$(date +%Y%m%d-%H%M%S).wav \
-    --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback \
+omniscribe --tui --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback \                                                                      130 ↵ ⌚ 8:49:23
     --transcribe \
     --language pt \
     --whisper-device cuda \
     --whisper-compute-type float16 \
-    --whisper-model large-v2 \
+    --whisper-model large-v3 \
     --chunk-seconds 12 \
     --beam-size 5 \
-    --initial-prompt "Reunião em português. Participantes: Marcelo, Tiago. Tópicos: AstraZeneca, speaker, CRM."
+    --initial-prompt "Reunião em português."
