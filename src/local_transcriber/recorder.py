@@ -849,7 +849,7 @@ def main() -> int:
     p.add_argument("--check-seconds", type=float, default=3.0,
                    help="duration of the --check measurement window")
     default_name = f"meeting-{dt.datetime.now():%Y%m%d-%H%M%S}.wav"
-    p.add_argument("-o", "--output", type=Path, default=Path(default_name))
+    p.add_argument("-o", "--output", type=Path, default=Path("meetings") / default_name)
     p.add_argument("--mic", help="microphone device (index or name)")
     p.add_argument("--system", help="system audio device (monitor/loopback index or name)")
     p.add_argument("--mic-gain", type=float, default=1.0)

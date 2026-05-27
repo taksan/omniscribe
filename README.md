@@ -48,7 +48,7 @@ pip install -e ".[transcribe]"  # Include transcription dependencies
 python -m local_transcriber --list
 
 # 2. Record. Plays back through your normal speakers/headphones meanwhile.
-python -m local_transcriber -o meetings/meeting.wav
+python -m local_transcriber  # saves to meetings/meeting-YYYYMMDD-HHMMSS.wav
 
 # Stop with Ctrl+C.
 ```
@@ -60,6 +60,7 @@ microphone defaults to the system default input.
 ## Useful options
 
 ```bash
+python -m local_transcriber -o my-meeting.wav          # custom output path
 python -m local_transcriber --mic 3 --system 7         # pick devices by index
 python -m local_transcriber --separate                 # also write *.mic.wav and *.system.wav
 python -m local_transcriber --mic-gain 1.2 --sys-gain 0.9
