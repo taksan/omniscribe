@@ -223,6 +223,7 @@ class LiveTranscriber:
         self._writer_lock = threading.Lock()
         self._start_wallclock: Optional[dt.datetime] = None
         self._file = None
+        self._gpu_detected: bool = False
 
     # ------------------------------------------------------------------ public
     def start(self) -> None:
@@ -248,8 +249,17 @@ class LiveTranscriber:
                 print("WARNING: No CUDA libs preloaded. GPU may fail.")
                 print("Try: pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-runtime-cu12")
 
+        # Track if we're using GPU
+        self._gpu_detected = False
+        
         try:
             self._model = WhisperModel(self.model_name, **kwargs)
+            # If we get here without exception, check if using CUDA
+            if self.device == "cuda":
+                self._gpu_detected = True
+            elif self.device == "auto" and cuda_available:
+                # Check if model actually loaded on GPU by inspecting the model
+                self._gpu_detected = hasattr(self._model, 'model') and 'cuda' in str(type(self._model.model)).lower()
         except Exception as e:  # noqa: BLE001
             error_msg = str(e)
             if self.device in ("auto", "cuda") and ("libcublas" in error_msg or "CUDA" in error_msg):
@@ -269,7 +279,7 @@ class LiveTranscriber:
                 )
             else:
                 raise
-        print("Whisper model ready.")
+        print(f"Whisper model ready (GPU: {'Yes' if self._gpu_detected else 'No'}).")
 
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self._file = open(self.output_path, "w", encoding="utf-8")

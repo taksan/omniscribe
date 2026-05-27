@@ -16,7 +16,7 @@ source .venv/bin/activate
 #   --whisper-device: cpu or cuda
 #   --chunk-seconds: 6-15 (longer = better context)
 
-omniscribe --tui --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback \                                                                      130 ↵ ⌚ 8:49:23
+omniscribe --tui --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback \
     --transcribe \
     --language pt \
     --whisper-device cuda \
