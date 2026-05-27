@@ -57,6 +57,7 @@ class Config:
 
     # Channel layout (split by default for re-transcription with speaker labels)
     split_channels: bool = True
+    diarize_them: bool = False  # Detect multiple speakers on system channel
 
     # Labeling
     mic_label: str = "You"

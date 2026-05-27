@@ -279,6 +279,159 @@ def _write_diarized_output(segments: Sequence[SpeakerSegment], output_path: Path
     print(f"Saved diarized transcript: {output_path}")
 
 
+def transcribe_split_with_diarization(
+    audio_path: Path,
+    output_path: Path,
+    transcriber,
+    you_label: str = "You",
+    them_label: str = "Them",
+    num_speakers: int | None = 2,
+    min_speakers: int | None = None,
+    max_speakers: int | None = None,
+    device: str = "cpu",
+) -> list[SpeakerSegment]:
+    """Transcribe split stereo file with diarization on system channel.
+
+    Processes left channel (You) as single speaker and right channel (Them)
+    with diarization to detect multiple speakers.
+
+    Args:
+        audio_path: Path to stereo WAV file (split channels)
+        output_path: Path for transcript output
+        transcriber: LiveTranscriber instance (for Whisper settings)
+        you_label: Label for left channel (mic)
+        them_label: Label prefix for right channel speakers
+        num_speakers: Expected number of speakers on system channel
+        min_speakers: Minimum speakers (overrides num_speakers if set)
+        max_speakers: Maximum speakers (overrides num_speakers if set)
+        device: "cpu" or "cuda" for pyannote
+
+    Returns:
+        List of SpeakerSegment with merged transcription results
+    """
+    print("Loading split stereo audio...")
+    audio, sr = sf.read(str(audio_path))
+    if audio.ndim == 1:
+        print("Error: Expected stereo file for split-channel diarization", file=sys.stderr)
+        return []
+
+    if audio.shape[1] < 2:
+        print("Error: File must have at least 2 channels", file=sys.stderr)
+        return []
+
+    # Extract channels
+    you_audio = audio[:, 0]  # Left = Mic = You
+    them_audio = audio[:, 1]  # Right = System = Them (multi-speaker)
+
+    results: list[SpeakerSegment] = []
+
+    # Process You channel (single speaker)
+    print(f"Processing {you_label} channel...")
+    you_segments = _transcribe_mono_channel(
+        you_audio, sr, transcriber, you_label
+    )
+    results.extend(you_segments)
+
+    # Process Them channel with diarization
+    print(f"Running diarization on {them_label} channel...")
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        sf.write(str(tmp_path), them_audio, sr)
+
+    try:
+        diarization = diarize_audio(
+            tmp_path,
+            num_speakers=num_speakers,
+            min_speakers=min_speakers,
+            max_speakers=max_speakers,
+            device=device,
+        )
+
+        if diarization:
+            # Get unique speakers and assign friendly names
+            unique_speakers = sorted(set(speaker for _, _, speaker in diarization))
+            speaker_map = {
+                s: f"{them_label} {chr(65 + i)}" for i, s in enumerate(unique_speakers)
+            }
+            print(f"Detected {len(unique_speakers)} speakers: {list(speaker_map.values())}")
+
+            # Transcribe each speaker segment
+            for start, end, speaker_id in diarization:
+                start_sample = int(start * sr)
+                end_sample = int(end * sr)
+                segment_audio = them_audio[start_sample:end_sample]
+
+                if len(segment_audio) < sr * 0.1:  # Skip very short segments
+                    continue
+
+                text = _transcribe_audio_segment(segment_audio, sr, transcriber)
+                if text.strip():
+                    results.append(SpeakerSegment(
+                        start=start,
+                        end=end,
+                        speaker=speaker_map[speaker_id],
+                        text=text.strip(),
+                    ))
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    # Sort all results by start time
+    results.sort(key=lambda x: x.start)
+
+    # Write output
+    _write_diarized_output(results, output_path)
+
+    return results
+
+
+def _transcribe_mono_channel(
+    audio: np.ndarray,
+    sr: int,
+    transcriber,
+    label: str,
+) -> list[SpeakerSegment]:
+    """Transcribe a mono audio channel and return segments."""
+    segments: list[SpeakerSegment] = []
+
+    # Create temp file for this channel
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        sf.write(str(tmp_path), audio, sr)
+
+    try:
+        text = _transcribe_segment(tmp_path, transcriber)
+        if text.strip():
+            # For continuous mono transcription, we treat it as one big segment
+            # starting at time 0 (will be refined later with VAD if needed)
+            duration = len(audio) / sr
+            segments.append(SpeakerSegment(
+                start=0.0,
+                end=duration,
+                speaker=label,
+                text=text.strip(),
+            ))
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return segments
+
+
+def _transcribe_audio_segment(
+    audio: np.ndarray,
+    sr: int,
+    transcriber,
+) -> str:
+    """Transcribe a numpy audio segment."""
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        sf.write(str(tmp_path), audio, sr)
+
+    try:
+        return _transcribe_segment(tmp_path, transcriber)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
 # Avoid torch import issues when pyannote not installed
 if PYANNOTE_AVAILABLE:
     import torch

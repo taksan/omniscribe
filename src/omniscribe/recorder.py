@@ -625,6 +625,8 @@ def record(
     max_no_speech_prob: float = 0.5,
     enable_repetition_filter: bool = True,
     split_channels: bool = True,
+    diarize_them: bool = False,
+    num_speakers: int = 2,
 ) -> None:
     use_parec_for_mic = isinstance(mic_device, str) and _looks_like_pulse_source(mic_device)
     use_parec_for_system = isinstance(system_device, str) and _looks_like_pulse_source(system_device)
@@ -939,6 +941,56 @@ def record(
         if transcriber is not None:
             print(f"Saved transcript {output.with_suffix('.txt')}")
 
+        # Post-processing: diarize system channel if requested
+        if diarize_them and split_channels:
+            from .diarizer import check_pyannote_available, transcribe_split_with_diarization
+
+            if not check_pyannote_available():
+                print(
+                    "Warning: pyannote.audio required for diarization.\n"
+                    "Install with: pip install 'omniscribe[diarize]'",
+                    file=sys.stderr,
+                )
+            else:
+                print("\n[Post-processing] Running speaker diarization on system channel...")
+                diarized_path = output.with_suffix(".diarized.txt")
+
+                # Create a transcriber for diarization (uses same Whisper settings)
+                from .transcriber import LiveTranscriber
+
+                diarize_transcriber = LiveTranscriber(
+                    output_path=diarized_path,
+                    model_name=whisper_model,
+                    device=whisper_device,
+                    compute_type=whisper_compute_type,
+                    language=language,
+                    source_sample_rate=SAMPLE_RATE,
+                    chunk_seconds=chunk_seconds,
+                    beam_size=beam_size,
+                    condition_on_previous_text=False,
+                    initial_prompt=initial_prompt,
+                    vad_min_silence_ms=vad_min_silence_ms,
+                    on_output=None,
+                    enable_hallucination_filter=enable_hallucination_filter,
+                    hallucination_blocklist=hallucination_blocklist,
+                    silence_threshold_db=silence_threshold_db,
+                    per_segment_output=True,
+                    min_logprob=min_logprob,
+                    max_no_speech_prob=max_no_speech_prob,
+                    enable_repetition_filter=enable_repetition_filter,
+                )
+
+                transcribe_split_with_diarization(
+                    audio_path=output,
+                    output_path=diarized_path,
+                    transcriber=diarize_transcriber,
+                    you_label=mic_label,
+                    them_label=system_label,
+                    num_speakers=num_speakers,
+                    device=whisper_device,
+                )
+                print(f"Saved diarized transcript: {diarized_path}")
+
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -958,6 +1010,8 @@ def main() -> int:
                         "(transcribes each channel separately with labels)")
     p.add_argument("--diarize", action="store_true",
                    help="run speaker diarization on the audio file (requires 'omniscribe[diarize]' extra)")
+    p.add_argument("--diarize-them", action="store_true",
+                   help="detect multiple speakers in system channel (Them) of split stereo recording")
     p.add_argument("--num-speakers", type=int, default=2,
                    help="expected number of speakers for diarization (default: 2)")
     default_name = f"meeting-{dt.datetime.now():%Y%m%d-%H%M%S}.wav"
@@ -1091,6 +1145,8 @@ def main() -> int:
             max_no_speech_prob=config.max_no_speech_prob,
             enable_repetition_filter=config.enable_repetition_filter,
             split_channels=config.split_channels,
+            diarize_them=config.diarize_them or args.diarize_them,
+            num_speakers=args.num_speakers,
         )
     except KeyboardInterrupt:
         # Force-quit path: finally block in record() already ran best-effort.
