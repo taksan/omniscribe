@@ -291,13 +291,14 @@ class OmniScribeTUI:
         # Clear screen for clean start
         self.console.clear()
         self._live = Live(
-            self._make_layout(),
             console=self.console,
             refresh_per_second=10,
             screen=False,  # Don't use alternate buffer (causes render issues)
             auto_refresh=True,
         )
         self._live.start()
+        # Start with initial layout
+        self._live.update(self._make_layout())
         self.state.recording = True
         self.state.add_message("TUI started. Recording...")
 
@@ -335,8 +336,10 @@ class OmniScribeTUI:
         old_settings = termios.tcgetattr(fd)
         
         try:
-            # Set terminal to raw mode for single-character input
-            tty.setraw(fd)
+            # Use cbreak (not raw) to preserve OPOST so Rich's output
+            # (which uses \n) is still translated to \r\n. Raw mode
+            # breaks rendering by disabling output post-processing.
+            tty.setcbreak(fd)
             
             while self.state.recording:
                 # Use select for non-blocking input with timeout
