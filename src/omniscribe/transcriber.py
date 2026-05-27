@@ -141,6 +141,9 @@ WHISPER_SR = 16000
 DEFAULT_HALLUCINATION_PATTERNS = [
     # Portuguese YouTube artifacts
     "obrigado por assistir",
+    "obrigado por assistir!",
+    "obrigado por assistir.",
+    "obrigado por assistir,",
     "se inscreva no canal",
     "ative o sininho",
     "acompanhe a avaliação",
