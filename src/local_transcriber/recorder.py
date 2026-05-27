@@ -36,6 +36,8 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
+from .config import Config, load_config, save_default_config
+
 
 SAMPLE_RATE = 48000
 CHANNELS = 2
@@ -843,6 +845,10 @@ def record(
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--config", type=Path, default=None,
+                 help="path to config JSON file (default: ~/.config/local-transcriber/config.json or ./config.json)")
+    p.add_argument("--init-config", action="store_true",
+                 help="create a default config.json file and exit")
     p.add_argument("--list", action="store_true", help="list audio devices and exit")
     p.add_argument("--check", action="store_true",
                    help="run a short mic/system noise check and exit")
@@ -883,6 +889,17 @@ def main() -> int:
                    help="disable the live ASCII level meters")
     args = p.parse_args()
 
+    # Handle --init-config: create default config and exit
+    if args.init_config:
+        path = save_default_config(args.config)
+        print(f"Created default config file: {path}")
+        print("Edit this file to customize your default settings.")
+        return 0
+
+    # Load config from file and merge with CLI args
+    config = load_config(args.config)
+    config.merge_with_args(args)
+
     if args.list:
         list_devices()
         return 0
@@ -896,36 +913,39 @@ def main() -> int:
             return v
 
     if args.check:
-        mic_dev = resolve_mic_device(_coerce(args.mic))
-        sys_dev = resolve_system_device(_coerce(args.system))
-        check_inputs(mic_dev, sys_dev, duration=args.check_seconds)
+        mic_dev = resolve_mic_device(_coerce(config.mic))
+        sys_dev = resolve_system_device(_coerce(config.system))
+        check_inputs(mic_dev, sys_dev, duration=config.check_seconds)
         return 0
 
-    mic_dev = resolve_mic_device(_coerce(args.mic))
-    sys_dev = resolve_system_device(_coerce(args.system))
+    mic_dev = resolve_mic_device(_coerce(config.mic))
+    sys_dev = resolve_system_device(_coerce(config.system))
+
+    # Build output path
+    output = Path(config.output) if config.output else args.output
 
     try:
         record(
-            output=args.output,
+            output=output,
             mic_device=mic_dev,
             system_device=sys_dev,
-            mic_gain=args.mic_gain,
-            sys_gain=args.sys_gain,
-            separate=args.separate,
-            transcribe=args.transcribe,
-            whisper_model=args.whisper_model,
-            whisper_device=args.whisper_device,
-            whisper_compute_type=args.whisper_compute_type,
-            language=args.language,
-            chunk_seconds=args.chunk_seconds,
-            mic_label=args.mic_label,
-            system_label=args.system_label,
-            silence_alert_seconds=args.silence_alert_seconds,
-            show_meters=not args.no_meters,
-            beam_size=args.beam_size,
-            condition_on_previous_text=not args.no_context,
-            initial_prompt=args.initial_prompt,
-            vad_min_silence_ms=args.vad_min_silence_ms,
+            mic_gain=config.mic_gain,
+            sys_gain=config.sys_gain,
+            separate=config.separate,
+            transcribe=config.transcribe,
+            whisper_model=config.whisper_model,
+            whisper_device=config.whisper_device,
+            whisper_compute_type=config.whisper_compute_type,
+            language=config.language,
+            chunk_seconds=config.chunk_seconds,
+            mic_label=config.mic_label,
+            system_label=config.system_label,
+            silence_alert_seconds=config.silence_alert_seconds,
+            show_meters=config.show_meters,
+            beam_size=config.beam_size,
+            condition_on_previous_text=config.condition_on_previous_text,
+            initial_prompt=config.initial_prompt,
+            vad_min_silence_ms=config.vad_min_silence_ms,
         )
     except KeyboardInterrupt:
         # Force-quit path: finally block in record() already ran best-effort.

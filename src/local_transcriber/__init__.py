@@ -14,7 +14,8 @@ Example:
 """
 
 __version__ = "0.1.0"
-__all__ = ["record", "LiveTranscriber", "check_inputs", "list_devices"]
+__all__ = ["record", "LiveTranscriber", "check_inputs", "list_devices", "Config", "load_config"]
 
 from local_transcriber.recorder import record, check_inputs, list_devices
 from local_transcriber.transcriber import LiveTranscriber
+from local_transcriber.config import Config, load_config

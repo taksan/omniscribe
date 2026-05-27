@@ -66,6 +66,51 @@ python -m local_transcriber --separate                 # also write *.mic.wav an
 python -m local_transcriber --mic-gain 1.2 --sys-gain 0.9
 ```
 
+## Configuration File
+
+Instead of passing flags every time, you can use a JSON configuration file.
+CLI flags override config file settings.
+
+### Create a config file
+
+```bash
+# Create default config in current directory
+python -m local_transcriber --init-config
+
+# Or specify a custom location
+python -m local_transcriber --init-config --config ~/.config/local-transcriber/config.json
+```
+
+### Config file locations (searched in order)
+
+1. `--config <path>` (explicit path)
+2. `~/.config/local-transcriber/config.json`
+3. `./config.json` (current directory)
+
+### Example config.json
+
+```json
+{
+  "mic": "alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback",
+  "transcribe": true,
+  "language": "pt",
+  "whisper_model": "large-v2",
+  "whisper_device": "cuda",
+  "whisper_compute_type": "float16",
+  "chunk_seconds": 12,
+  "beam_size": 5,
+  "initial_prompt": "Reunião sobre AstraZeneca, speaker, CRM",
+  "mic_label": "Eu",
+  "system_label": "Eles"
+}
+```
+
+Then simply run:
+
+```bash
+python -m local_transcriber  # Uses settings from config.json
+```
+
 ## Tips for meetings
 
 - Use **headphones** so the meeting audio coming out of your speakers is not
