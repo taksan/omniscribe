@@ -313,6 +313,7 @@ class OmniScribeTUI:
             self.state.mic_muted = not self.state.mic_muted
             status = "MUTED" if self.state.mic_muted else "UNMUTED"
             self.state.add_message(f"Microphone {status}")
+        self.update()  # Force immediate refresh
     
     def toggle_sys_mute(self) -> None:
         """Toggle system audio mute state."""
@@ -320,6 +321,7 @@ class OmniScribeTUI:
             self.state.sys_muted = not self.state.sys_muted
             status = "MUTED" if self.state.sys_muted else "UNMUTED"
             self.state.add_message(f"System audio {status}")
+        self.update()  # Force immediate refresh
     
     def _input_loop(self) -> None:
         """Background thread to handle keyboard input."""

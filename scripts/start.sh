@@ -22,6 +22,10 @@ omniscribe --tui --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_00000000
     --whisper-device cuda \
     --whisper-compute-type float16 \
     --whisper-model large-v3 \
-    --chunk-seconds 12 \
-    --beam-size 5 \
     --initial-prompt "Reunião em português, mas podem haver alguns termos em inglês, especialmente em nomes próprios de sistemas, aplicações ou estrangeirismos."
+
+
+# omniscribe --transcribe-file meetings/meeting-20260527-103422.wav --language pt --diarize --num-speakers 2 \
+#     --whisper-device cuda \
+#     --whisper-compute-type float16 \
+#     --whisper-model large-v3
