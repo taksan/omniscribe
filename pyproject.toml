@@ -31,6 +31,10 @@ dependencies = [
     "numpy>=1.24",
     "faster-whisper>=1.0.0",
     "scipy>=1.10",
+    # NVIDIA CUDA libraries for GPU support
+    "nvidia-cublas-cu12>=12.1",
+    "nvidia-cudnn-cu12>=8.9",
+    "nvidia-cuda-runtime-cu12>=12.1",
 ]
 
 [project.optional-dependencies]
