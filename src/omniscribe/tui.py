@@ -253,7 +253,7 @@ class OmniScribeTUI:
         while self.state.recording and self._live:
             try:
                 self.update()
-                time.sleep(0.05)  # 20 FPS refresh
+                time.sleep(0.033)  # ~30 FPS refresh for smoother transcript
             except Exception:
                 break
 
