@@ -296,13 +296,15 @@ class OmniScribeTUI:
             screen=True  # Use alternate screen buffer
         )
         self._live.start()
+        # Force immediate refresh to avoid initial blank screen
+        self._live.update(self._make_layout())
         self.state.recording = True
         self.state.add_message("TUI started. Recording...")
-        
+
         # Start background refresh thread
         self._refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
         self._refresh_thread.start()
-        
+
         # Start keyboard input thread
         self._input_thread = threading.Thread(target=self._input_loop, daemon=True)
         self._input_thread.start()
