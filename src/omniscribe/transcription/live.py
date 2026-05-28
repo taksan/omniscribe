@@ -79,6 +79,7 @@ class LiveTranscriber:
         self._writer_lock = threading.Lock()
         self._start_wallclock: Optional[dt.datetime] = None
         self._file = None
+        self._filtered_file = None
         self._gpu_detected = False
         self._recent_outputs: dict[str, list[str]] = {}
         self._outputs_lock = threading.Lock()
@@ -148,10 +149,16 @@ class LiveTranscriber:
 
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self._file = open(self.output_path, "w", encoding="utf-8")
+        # Open filtered transcript file to track what was filtered out
+        filtered_path = self.output_path.with_stem(f"{self.output_path.stem}.filtered")
+        self._filtered_file = open(filtered_path, "w", encoding="utf-8")
         self._start_wallclock = dt.datetime.now()
         git_sha = get_git_sha()
         self._write_line(
             f"# transcript started {self._start_wallclock:%Y-%m-%d %H:%M:%S} (version: {git_sha})"
+        )
+        self._write_filtered_line(
+            f"# filtered content from {self._start_wallclock:%Y-%m-%d %H:%M:%S} (version: {git_sha})"
         )
 
         self._worker = threading.Thread(
@@ -185,6 +192,9 @@ class LiveTranscriber:
         if self._file is not None:
             self._file.close()
             self._file = None
+        if self._filtered_file is not None:
+            self._filtered_file.close()
+            self._filtered_file = None
         if self._hallucination_filter:
             self._hallucination_filter.filter_transcript_file(self.output_path)
 
@@ -267,10 +277,13 @@ class LiveTranscriber:
         if not text:
             return False
         if hasattr(seg, "avg_logprob") and seg.avg_logprob < self.min_logprob:
+            self._log_filtered_segment(label, text, "low_confidence")
             return False
         if hasattr(seg, "no_speech_prob") and seg.no_speech_prob > self.max_no_speech_prob:
+            self._log_filtered_segment(label, text, "no_speech")
             return False
         if hasattr(seg, "compression_ratio") and seg.compression_ratio > 2.0:
+            self._log_filtered_segment(label, text, "high_compression")
             return False
         if self._hallucination_filter:
             # Calculate segment duration for duration-based hallucination detection
@@ -280,12 +293,24 @@ class LiveTranscriber:
             if self._hallucination_filter.is_hallucination(
                 text, duration_seconds=duration, audio=audio
             ):
-                print(f"[Hallucination filtered: {text[:50]}...]")
+                self._log_filtered_segment(label, text, "hallucination")
                 return False
         if self._is_repetition(label, text):
-            print(f"[Repetition filtered: {text[:50]}...]")
+            self._log_filtered_segment(label, text, "repetition")
             return False
         return True
+
+    def _log_filtered_segment(self, label: str, text: str, reason: str) -> None:
+        """Log a filtered segment to both console and filtered transcript."""
+        print(f"[Filtered ({reason}): {text[:50]}...]")
+        # Calculate timestamp
+        ts = dt.datetime.now()
+        rel = ts - (self._start_wallclock or ts)
+        secs = int(rel.total_seconds())
+        hh, rem = divmod(secs, 3600)
+        mm, ss = divmod(rem, 60)
+        line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: [{reason}] {text}"
+        self._write_filtered_line(line)
 
     def _write_segments(self, label: str, segments, chunk_start_ts: dt.datetime) -> None:
         chunk_start_rel = chunk_start_ts - (self._start_wallclock or chunk_start_ts)
@@ -341,3 +366,9 @@ class LiveTranscriber:
                 self._file.flush()
             if self._on_output is not None:
                 self._on_output(line)
+
+    def _write_filtered_line(self, line: str) -> None:
+        with self._writer_lock:
+            if self._filtered_file is not None:
+                self._filtered_file.write(line + "\n")
+                self._filtered_file.flush()
