@@ -12,10 +12,70 @@ from __future__ import annotations
 import datetime as dt
 import queue
 import re
+import subprocess
 import threading
 import unicodedata
 from pathlib import Path
 from typing import Callable, Optional
+
+
+def _get_git_sha() -> str:
+    """Get the current git SHA for version tracking."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent.parent,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
+
+
+def _filter_transcript_file(path: Path, patterns: list[str]) -> int:
+    """Post-process transcript file to remove any hallucinated lines.
+    
+    Returns the number of lines filtered.
+    """
+    if not path.exists():
+        return 0
+    
+    compiled_patterns = [re.compile(re.escape(p), re.IGNORECASE) for p in patterns]
+    
+    lines_kept = []
+    lines_filtered = 0
+    
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line_stripped = line.strip()
+            # Keep header lines (start with #)
+            if line_stripped.startswith("#"):
+                lines_kept.append(line)
+                continue
+            
+            # Check if line contains hallucination pattern
+            text_lower = unicodedata.normalize('NFC', line_stripped.lower())
+            is_hallucination = False
+            for pattern in compiled_patterns:
+                if pattern.search(text_lower):
+                    is_hallucination = True
+                    break
+            
+            if is_hallucination:
+                lines_filtered += 1
+                print(f"[Final filter removed: {line_stripped[:60]}...]")
+            else:
+                lines_kept.append(line)
+    
+    if lines_filtered > 0:
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(lines_kept)
+        print(f"[Final filtering complete: {lines_filtered} hallucinated lines removed]")
+    
+    return lines_filtered
 
 import numpy as np
 
@@ -381,8 +441,9 @@ class LiveTranscriber:
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self._file = open(self.output_path, "w", encoding="utf-8")
         self._start_wallclock = dt.datetime.now()
+        git_sha = _get_git_sha()
         self._write_line(
-            f"# transcript started {self._start_wallclock:%Y-%m-%d %H:%M:%S}"
+            f"# transcript started {self._start_wallclock:%Y-%m-%d %H:%M:%S} (version: {git_sha})"
         )
 
         self._worker = threading.Thread(
@@ -418,6 +479,10 @@ class LiveTranscriber:
         if self._file is not None:
             self._file.close()
             self._file = None
+        # Final pass: filter any hallucinated lines that slipped through
+        if self._hallucination_filter:
+            patterns = [p.pattern for p in self._hallucination_filter.patterns]
+            _filter_transcript_file(self.output_path, DEFAULT_HALLUCINATION_PATTERNS)
 
     def _check_silence(self, audio: np.ndarray) -> bool:
         """Check if audio chunk is predominantly silence.
