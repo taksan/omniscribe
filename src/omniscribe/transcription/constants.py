@@ -3,30 +3,36 @@
 WHISPER_SR = 16000
 
 DEFAULT_HALLUCINATION_PATTERNS = [
+    # YouTube/streaming metadata
     "obrigado por assistir",
-    "obrigado por assistir!",
-    "obrigado por assistir.",
-    "obrigado por assistir,",
-    "obrigado por assistir ",
+    "thanks for watching",
+    "subscribe to the channel",
+    "like and subscribe",
+    "click the bell",
+    "check the description",
     "se inscreva no canal",
     "ative o sininho",
     "acompanhe a avaliação",
     "legendas disponíveis",
-    "inscreva-se",
-    "thanks for watching",
-    "subscribe to the channel",
-    "click the bell",
-    "like and subscribe",
-    "check the description",
-    "the the the the",
-    "um um um um",
-    "e e e e",
+    "acesse o nosso site",
+    "www.opusdei.pt",
+
+    # Subtitle/captions artifacts
+    "webvtt",
+    "kind: captions",
+    "language: pt",
+    "language: en",
+    "legenda por",
+    "timestamp",
+
+    # Common filler and audio glitches
+    "um er um",
+    "ah eh ah",
+    "[inaudible]",
+    "[background noise]",
+    "[music]",
+
+    # Bye phrases (often hallucinated)
     "tchau, tchau",
     "tchau, tchau.",
-    "legenda por",
-    "www.opusdei.pt",
-    "acesse o nosso site",
-    " WEBVTT",
-    " kind: captions",
-    " Language: pt",
 ]

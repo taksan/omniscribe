@@ -32,14 +32,27 @@ class HallucinationFilter:
 
     def is_hallucination(self, text: str) -> bool:
         text_normalized = unicodedata.normalize("NFC", text.lower()).strip()
+        # Normalize whitespace for pattern matching
+        text_normalized_ws = " ".join(text_normalized.split())
+
         for pattern in self.patterns:
-            if pattern.search(text_normalized):
+            if pattern.search(text_normalized_ws):
                 return True
+
+        # Detect repetitive words (common Whisper glitches)
         words = text_normalized.split()
-        if len(words) >= 4:
-            for i in range(len(words) - 3):
-                if words[i] == words[i + 1] == words[i + 2] == words[i + 3]:
-                    return True
+        return self._has_repetition_glitch(words)
+
+    def _has_repetition_glitch(self, words: list[str]) -> bool:
+        if len(words) < 4:
+            return False
+
+        # Detect 4+ consecutive identical words (clear hallucination pattern)
+        # This handles: "the the the the", "um um um um", "e e e e", etc.
+        for i in range(len(words) - 3):
+            if words[i] == words[i + 1] == words[i + 2] == words[i + 3]:
+                return True
+
         return False
 
     def filter_transcript_file(self, path: Path) -> int:
