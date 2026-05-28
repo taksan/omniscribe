@@ -3,7 +3,6 @@ meetings/
 *.wav
 *.mp3
 *.m4a
-*.txt
 
 # HuggingFace model cache
 .cache/

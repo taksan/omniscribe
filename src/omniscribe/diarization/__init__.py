@@ -1,6 +1,6 @@
-"""Backward-compatible re-exports for diarization."""
+"""Speaker diarization feature."""
 
-from omniscribe.diarization.diarizer import (
+from .diarizer import (
     PYANNOTE_AVAILABLE,
     SpeakerSegment,
     check_pyannote_available,

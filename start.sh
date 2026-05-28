@@ -16,9 +16,12 @@ source .venv/bin/activate
 #   --whisper-device: cpu or cuda
 #   --chunk-seconds: 6-15 (longer = better context)
 
+# NOTE: --language is intentionally omitted to allow per-chunk auto-detection.
+# This avoids Whisper translating English speech into Portuguese (and vice versa)
+# during mixed-language meetings. Add `--language pt` back if your meetings are
+# 100% Portuguese.
 omniscribe --tui --mic alsa_input.usb-HP__Inc_HyperX_Cloud_III_Wireless_0000000000000000-00.mono-fallback \
     --transcribe \
-    --language pt \
     --whisper-device cuda \
     --whisper-compute-type float16 \
     --whisper-model large-v3 \

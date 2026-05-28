@@ -1,0 +1,435 @@
+# transcript started 2026-05-27 16:01:29
+[00:00:10] You: Bom dia!
+[00:00:20] You: Bom dia, aliás, boa tarde, né? Tudo bem, Nicolas? Meu nome é Gabriel Takeuchi, eu sou...
+[00:00:20] Them: Oi, boa tarde.
+[00:00:30] You: Eu sou o líder de DevSecOps aqui do Objectives, da área de qualidade. Como você está entrando na parte de QA e Engineering, então, pronto, está ali dentro da minha esfera.
+[00:00:40] You: De atuação, inclusive se você entrar como colaborador, eu vou ser o seu líder aqui.
+[00:00:50] You: Legal, então hoje a gente vai bater um papo bem técnico, eu vou gravar até para poder revisar.
+[00:01:00] Them: Obrigado.
+[00:01:10] You: Bom, vamos lá. Bom, Nicolas, então, entendo que você está entrando aqui para trabalhar na área de QA.
+[00:01:20] You: Então, me dê um breve resumo da sua experiência com o que há, com que tipo de tecnologia que você lida, o que você conhece.
+[00:01:30] Them: Claro. Eu tenho 5 anos na área de QA, testes manuais, testes de automação.
+[00:01:40] Them: Trabalhando em testes web e mobile, eu já trabalhei usando Selenium, Windows Web...
+[00:01:50] Them: O WinAppDrive, que é diferente, é um outro driver ali do Selenium, para aplicação do desktop.
+[00:02:00] Them: Já trabalhei com o Appian também para iOS e Android, recentemente também trabalhei com Playwright, fiz até um curso recentemente.
+[00:02:10] Them: O curso da Udemy, para me aprofundar e fazer mais uns... como é que eu posso dizer... é, para continuar mentalizando, né? Mas aí, nesse caso, usando o Python...
+[00:02:30] Them: Como postman, para testificar, responses, code responses, bodies...
+[00:02:40] Them: Então, você deveria averiguar ali se estava correto no banco de dados. É, o meu áudio está saindo correto, é que eu estou de fone e estou usando o celular.
+[00:02:50] You: Sim, está tranquilo.
+[00:02:50] Them: O último trabalho que eu participei, eu trabalhei um pouco mais como que o engineer, eu era...
+[00:03:00] Them: Fazer muito planejamento dos testes, mapear o que deve ser testado durante aquele mês, aquela sprint, fazer reuniões.
+[00:03:14] Them: A gente tem um alinhamento com a P.O., com os developers, tinha todo um alinhamento, criamos as setas enquadrinhas...
+[00:03:20] Them: Teste case do zero e passava por time até outros que o express poderem fazer o teste manual, mas eu também faz os testes manuais.
+[00:03:30] Them: E fazia teste de automação com Playwright, Python, daí tem aquelas ferramentas lá também que eu já atuei gíria.
+[00:03:40] Them: Confluence, CSG usando Jenkins, Git, GitHub, Bitbucket.
+[00:03:49] You: Legal.
+[00:03:50] Them: Acho que é isso, eu não passei pela outra trajetória que eu fiz nas outras porque eu quis deixar um pouco mais resumido pra ti. A última vez que eu falei eu fiquei muito...
+[00:04:00] You: Eu também prefiro assim, porque eu vou querer perguntar outras coisas. Bom, então, você falou que...
+[00:04:00] Them: Vou ter que ir falando.
+[00:04:10] You: Então você citou as várias ferramentas que você utilizou, e você, esses testes que você escreveu, você...
+[00:04:10] Them: Obrigado.
+[00:04:20] You: Me explica assim como é que funcionava o processo. Você usa... Alguém chegava, eu chego para você e falo, Nicolas, eu preciso que você faça...
+[00:04:30] You: O que acontece de uma ficha? Me explica passo a passo como é que você faria. Eu vou te dar um... para a gente ficar mais concreto aqui, ao invés de pegar e falar uma coisa idiota, vamos supor o seguinte.
+[00:04:40] You: Você está trabalhando no sistema, no sistema financeiro, e surgiu uma feature que é o seguinte, o cara desenvolveu um mecanismo.
+[00:04:50] You: O cara já fez a feature.
+[00:04:50] Them: Feature do zero ali. Beleza.
+[00:04:59] You: Então, você foi incumbido de fazer o teste, de uma fechura de contestação.
+[00:05:00] Them: Tá. Beleza.
+[00:05:09] You: Eu quero que você me conte como que seria o passo a passo do seu processo de desenvolver o teste.
+[00:05:10] Them: Análise.
+[00:05:20] Them: Eu primeiramente ia ler ali a teste que foi feita, a feature, né, ia pegar o... e entendeu o que foi...
+[00:05:29] Them: Obrigado por assistir, se inscreva no canal e ative o sininho para receber notificações de novos vídeos.
+[00:05:40] Them: Para entender se teve mais alguma coisa e até como o Product Owner entender as regras de negócios baseadas ali, né? Feito isso, eu...
+[00:05:50] Them: Geralmente eu gosto de criar os acceptance criteria se já não tivesse sido feito, porque muitas vezes já está na task também, e eu vou criar...
+[00:05:59] Them: Eu gosto de pegar essa feature, o caminho dela, e gosto de dar uma...
+[00:06:09] Them: É uma coisa mais explorada, mexer tecnicamente, abrir, tentar reproduzir alguma coisa, para entender o caminho para chegar ali.
+[00:06:19] Them: Se eu precisar de uma conta, já vou deixar as preconditions feitas e imaginando até chegar nessa contestação.
+[00:06:30] Them: Acreditando-nos que o usuário teve que fazer uma compra e está retornando, tudo isso tem que ser uma precondition. Feito isso...
+[00:06:39] Them: Aí eu escreveria um teste case para prioritar...
+[00:06:50] Them: Geralmente é um teste, é um golden path, um caminho perfeito, assim, e eu geralmente gosto de escrever com BDD.
+[00:06:59] Them: Gherkin, usando Alice, Alice Given, daí eu faria o caminho perfeito.
+[00:07:09] Them: Se der tudo certo, aí eu já iria começar a fazer todos os outros testes, fazer teste de negação, teste de edge.
+[00:07:19] Them: Eu gosto de fazer um pouco de exploratório junto, só para ter uma noção, que muitas vezes tem uns gaps que acontecem...
+[00:07:29] You: Até logo!
+[00:07:30] Them: Entre uma feature e outra, o que já foi planejado, né? Eu acho que foi isso. Feito isso, eu...
+[00:07:39] You: Vamos lá, vamos voltar para o começo e vamos fazer isso de uma maneira um pouquinho diferente.
+[00:07:40] Them: Posso ir pra frente, pode dizer.
+[00:07:49] You: Eu sou o desenvolvedor, eu sou o Product Owner, eu sou quem for necessário. Então a gente vai...
+[00:07:50] Them: Obrigado, Gabriel.
+[00:08:00] You: Então, a gente vai numa linha um pouco diferente. Ao invés de você ficar me contando de maneira declarativa o que você falou, a gente vai fazer, vai fazer tipo um roleplay, tá bom?
+[00:08:00] Them: Legal! Perfeito!
+[00:08:09] You: Então, eu vou começar, meu primeiro é chapéu.
+[00:08:10] Them: Nunca fiz isso, mas achei legal. Nunca fiz uma entrevista assim. Vamos lá.
+[00:08:20] You: O que é o Dungeon Master, meu primeiro chapéu, eu sou o seu líder, o líder do time de cá, eu sou seu líder, aí eu falo, Nicolas, você tem que fazer o teste.
+[00:08:29] You: Tinha uma ficha aí de contestação de pagamento, tá? Então, agora sim. Não, não.
+[00:08:30] Them: Dito isso, eu ia pedir a TESC...
+[00:08:39] You: Não, não, diferente, agora você vai falar comigo, é um roleplay, fala comigo, entendeu?
+[00:08:39] Them: Podia dar uma olhada? Sim. Ah, dá!
+[00:08:49] You: Pode ser.
+[00:08:49] Them: Oi, Gabriel. Desculpa. Tá bom, eu preciso dar uma olhada na feature porque eu, sei lá, não...
+[00:08:59] Them: Então, a gente não tem isso novo, eu quero dar uma olhada em como é que funciona. Tu pode me dar um pouco de baseamento sobre como é que isso vai funcionar.
+[00:09:09] You: Tá bom?
+[00:09:10] Them: Onde é que isso vai se encaixar? Se é só para esse país produtos? Preciso de algumas informações.
+[00:09:19] You: Eu não estou por dentro. Agora eu sou o Jack.
+[00:09:19] Them: Obrigado.
+[00:09:29] You: E isso é técnico.
+[00:09:29] Them: Oi Jack, eu preciso de algumas informações dessa nova feature que está sendo planejada.
+[00:09:39] Them: Obrigada. Essa é de contestação. Eu queria saber o que vai ser necessário para eu poder testar e o que ela...
+[00:09:49] Them: Como é que ela vai funcionar? O que o usuário vai poder estar contestando, quais produtos, em qual fluxo que isso vai acontecer?
+[00:09:59] You: Ah, beleza. Então é o seguinte, a feature é para que um usuário...
+[00:09:59] Them: Obrigado por assistir.
+[00:10:09] You: O presidente possa contestar uma compra, não é para cancelar a compra, é para contestar, às vezes pode ter ocorrido algum tipo de fraude, algo assim, então foi pedido...
+[00:10:09] Them: Uhum.
+[00:10:19] You: Então, é sobre isso. O que você precisa...
+[00:10:19] Them: Obrigado por assistir.
+[00:10:29] You: Mais dicas.
+[00:10:29] Them: A gente vai fazer testes de back-end e front-end, se sim, no back-end eu queria saber se tu já tem as collections para me passar.
+[00:10:39] Them: A API, o endpoint, para ter uma ideia, e no front-end eu queria saber se o...
+[00:10:49] You: Ah, legal, eu tenho aqui, está aqui a URL, eu passo para você a URL, está aqui.
+[00:10:49] Them: Onde é que vai ficar essa interface do usuário para ele poder contestar?
+[00:10:59] You: Aqui tem um momento de teste, eu compartilho a tela com você, estou te mostrando como é que é a mente, está aqui, é assim que contesta, eu faço um exemplo.
+[00:10:59] Them: Obrigado.
+[00:11:09] You: De contestação, põe aqui, eu procuro, é, estou no meio de desenvolvimento, então não tem problema, aqui eu posso fazer à vontade. Então, aqui tem uma...
+[00:11:09] Them: No mock, claro.
+[00:11:19] You: Uma compra, eu sou cliente, então eu posso olhar todas as compras que eu fiz, aí eu vi aqui, poxa, isso aqui não foi o que eu fiz, eu vou lá, vou apertar o botão, vou contestar, fazer um pedido.
+[00:11:20] Them: E tem uma compra...
+[00:11:29] You: E é isso aí. Sobre o collection, tem aqui um swagger, serve para você?
+[00:11:29] Them: Obrigado por assistir.
+[00:11:39] You: Você pode olhar o Swagger, o que mais você precisa, Nicholas, de mim?
+[00:11:39] Them: Queria saber, ao contestar, qual é o esperado? Ele vai ter um e-mail?
+[00:11:49] Them: O que aconteceu, o que eu esperava para ele, se ele já vai estar contestado automaticamente, vai ter uma mensagem.
+[00:11:59] You: Tá, quando o cara quiser... Como é que é o...
+[00:11:59] Them: Se der algum erro, tem algum erro esperado, uma mensagem de erro, alguma tela.
+[00:12:09] You: A situação é a seguinte, o usuário, o nosso cliente, ele vai perceber em algum momento que...
+[00:12:09] Them: Obrigado.
+[00:12:19] You: Olhando nas compras dele, usando o aplicativo, que houve uma compra, ele vai receber uma notificação, porque o nosso sistema manda notificação das compras.
+[00:12:29] You: Digamos assim, ele pode perceber a compra e vai ver lá, poxa, não fui eu que fiz essa compra, ele vai entrar no nosso sistema, localizar a compra e vai apertar um botão pedindo a compra.
+[00:12:29] Them: Obrigado por assistir.
+[00:12:39] You: A contestação não é aprovada automaticamente, ela vai entrar em um fluxo.
+[00:12:39] Them: Pedindo a competição.
+[00:12:49] You: Onde a pessoa vai para uma área de análise de contestações que vai fazer uma análise...
+[00:12:49] Them: Obrigado por assistir.
+[00:12:59] You: Então, nessa área de análise, a gente começou a utilizar modelos de IA para poder...
+[00:12:59] Them: Nesta área de análise...
+[00:13:09] You: Então, para fazer a triagem e identificar se houve, de fato, uma fraude. Então, esse é o modelo, eu não tenho conhecimento desse modelo, isso não faz parte do meu trabalho.
+[00:13:09] Them: Obrigado por assistir.
+[00:13:19] You: Mas tem um serviço que a gente contrata que é capaz de olhar um histórico, consultar a Serasa, uma série de questões assim, para fazer um profile.
+[00:13:19] Them: Obrigado por assistir.
+[00:13:28] You: Então, basicamente é esse o fluxo.
+[00:13:29] Them: Obrigado por assistir.
+[00:13:39] You: Sobre receber o e-mail, o usuário vai receber uma notificação no celular de que ele fez isso.
+[00:13:39] Them: Sobre a receita do e-mail, temos várias vezes.
+[00:13:49] You: E um e-mail também confirmando, você abriu uma contestação, que assim é sensato. E a área responsável, depois que a triagem ocorrer...
+[00:13:49] Them: Essa é a área.
+[00:13:59] You: Se for aprovado, se for julgado pela IA como procedente, vai cair numa área...
+[00:13:59] Them: Obrigado.
+[00:14:08] You: O usuário tem um dashboard que consegue ver todas as condições pendentes e tem que trabalhar para analisar.
+[00:14:09] Them: Obrigado por assistir.
+[00:14:19] You: Se for negado, o usuário vai receber um e-mail explicando que foi negado, que foi indeferido como um improcedente.
+[00:14:19] Them: Obrigado.
+[00:14:28] You: Então é mais ou menos isso. O que mais você precisa?
+[00:14:29] Them: Eu perguntei se tem alguma tela de erro, digamos que foi fazer essa contestação e teve, sei lá, algum fodo.
+[00:14:38] You: Ah, sim, não. A contestação só pode ser realizada pelo usuário que é dono dela, que dá a compra.
+[00:14:39] Them: Obrigado por assistir.
+[00:14:48] You: A não ser que haja um erro interno, ele não vai receber uma mensagem de erro.
+[00:14:49] Them: Tá.
+[00:14:58] You: Isso vai dizer que deu certo, que se tiver um problema de conectividade, vai ter uma tela de erro.
+[00:14:59] Them: Mas vai ter um erro tratado, então, uma tela de erro tratado.
+[00:15:08] You: Dizendo que o sistema tem disponível algo assim.
+[00:15:09] Them: Perfeito, tá. Dito isso, tá tudo ok pra mim. Obrigado, Dirk, pelas informações.
+[00:15:18] You: Disponha. Próximo passo, Nicolas.
+[00:15:19] Them: Eu fiz as minhas notas aqui. Próximo passo, eu já verifiquei com o tecnismo.
+[00:15:28] Them: Eu já entendi os business, só tô pensando aqui, tá? Eu começaria, eu pegaria o...
+[00:15:41] You: Escolhe. Pode escolher.
+[00:15:42] Them: A minha task, eu não sei que ferramenta eu estaria utilizando, pode ser um Excel, bem simples, e começaria a escrever os test cases no Excel.
+[00:15:55] Them: E aí uma coluna de test case, onde eu botaria as pré-condições e o passo a passo com o usuário.
+[00:16:09] Them: Até o final.
+[00:16:24] You: Então, vamos fingir que você usou o Test Radio. Pronto, melhor. Isso, não. Você pode escolher a ferramenta, tá? Você diga a ferramenta que você quer usar e eu vou usar essa. Porque como a gente está num cenário que está sendo...
+[00:16:24] Them: É só dizer o que você quer, não vem na cabeça.
+[00:16:37] You: Então, você pode dizer qual é a melhor ferramenta para fazer aquilo que você acha que tem que fazer. Legal!
+[00:16:37] Them: Perfeito, usaria o test frame, visto que começaria se a gente já tivesse milestones.
+[00:16:50] You: Ok? Depois.
+[00:16:51] Them: Eu entraria ali referente e criaria os test cases ali, já diretamente. Depois disso, os test cases prontos, eu ia...
+[00:17:05] Them: Se o feature for pronto, eu começaria a testar só para validar aquela feature, para ver se está, sei lá, se o, como é que eu vou dizer, se o, como se tentasse, com.
+[00:17:18] You: Contestação
+[00:17:19] Them: Contestação está funcionando, se está tendo algum defeito, se está funcionando os requests e tudo. Após isso, eu poderia fazer um teste de regressão, olhando se aquele fluxo de contestação está afetando outros...
+[00:17:32] You: Tá, então você começaria primeiro rodando o teste de regressão, é isso? Aceitação, tá.
+[00:17:32] Them: É isso, a primeira aceitação.
+[00:17:46] You: Entre o que eu te expliquei aqui, escolhe um exemplo de teste que você precisa fazer e me descreve bem detalhado como você implementaria ele.
+[00:18:00] You: Então, eu já expliquei várias coisas. Escolha uma coisa, qualquer coisa, e diga, eu vou testar isso, e eu vou testar assim, acessado com isso, com essa ferramenta, fazendo esse tipo de validação. Isso, não, é o Tecnid.
+[00:18:01] Them: Mas tu diz referente à contestação, né? Tá.
+[00:18:14] You: A gente contou um monte de coisa, então você pode escolher, dentro do que você ouviu, escolhe uma coisa para testar e me conta como você vai testar ela.
+[00:18:14] Them: Sim, sim.
+[00:18:27] Them: É um caminho, claro, de contestação que deu positivo ali, o usuário fez o request e vai para a análise lá para frente e vai receber.
+[00:18:41] Them: Então, a primeira coisa que eu botaria é preconditions, o usuário tem que estar criado, toda a ferramenta do test rail, começaria com preconditions, conta criada.
+[00:18:55] Them: A Alice tem um contato, a Alice está no... Eu não sei que página que é, mas... Vamos ver, overview, então vamos para o dashboard e vamos para o...
+[00:19:09] Them: Não sei, como é o nome em português daquela coisa?
+[00:19:22] You: Extrato.
+[00:19:23] Them: E aí, Alice vai no extrato, escolhe uma, Alice deve ter uma conta feita.
+[00:19:36] You: Apagamento.
+[00:19:37] Them: Se não tiver ideia, a gente pode voltar atrás e realizar um pagamento, levar no extrato e com o teste.
+[00:19:50] Them: Por que você está contestando? Selecione a opção de que não conhece.
+[00:20:04] Them: Não reconhece a compra que a gente tem. Botou a opção de não reconhece a compra, deu ok, aparece um pop-up dizendo que sua constatação...
+[00:20:18] You: Festa-se!
+[00:20:18] Them: A testação foi aprovada e está em análise. Aí vai ter que aparecer obrigatório.
+[00:20:32] Them: Para confirmar a contestação, o pop-up de foi aprovado ou foi para análise.
+[00:20:46] Them: Esperado, né? Acho que é isso. Daí tem várias coisas que dá pra botar. Dá pra botar um... Tem que, sei lá, validações, né? Deve aparecer um negocinho verde, deve aparecer uma mensagem, tira um screenshot.
+[00:21:00] You: Ok, então, eu só me lembro que eles me disseram que eu deveria fazer a entrevista em inglês, eu esqueci esse pedido, mas, então, se nós pudermos mudar para inglês agora, ok.
+[00:21:00] Them: Obrigado por assistir.
+[00:21:14] You: Vamos prosseguir em inglês. Ok, então, você vai explicar um cenário de teste de nível alto, explicando quais passos e o que...
+[00:21:14] Them: Não tem problema, está bem.
+[00:21:28] You: O que são as expectativas, certo? Então, vamos um pouco mais profundo, certo? Então, ok, então, o teste, você mencionou que alguém iria, não sei, ir para a overview e depois ver.
+[00:21:28] Them: Obrigado.
+[00:21:41] You: E aí eles vão encontrar um pagamento que eles querem rejeitar, e você vai clicar lá.
+[00:21:41] Them: Obrigado.
+[00:21:55] You: Então, durante essas percepções, vamos supor que você escreveu isso em que idioma, quando você estava me explicando, em que idioma você usou?
+[00:21:55] Them: Obrigado.
+[00:22:09] You: Você escreveu o caso de teste? Mas você mencionou Gherkin?
+[00:22:09] Them: Eu sou Joaquim Selenio, ou Playwright, eu acho, você quer dizer, você quer dizer, ah, desculpa, ah, é, Joaquim.
+[00:22:23] You: Mas agora vamos ter que implementar o teste BDD, obviamente o Gherkin permite você implementar o que vai acontecer.
+[00:22:23] Them: Obrigado.
+[00:22:36] You: E vamos lá. Diga-me um pouco sobre a implementação de clicar em um link. E o que é o próximo?
+[00:22:50] You: Usando Playwright, por exemplo.
+[00:22:51] Them: O que você quer que eu faça com o meu cartão de indicações? Ah, o playwright, ok. Eu quero fazer uma página, um ponto.
+[00:23:04] Them: E... não estou me lembrando agora, mas eu posso usar o Selenium, certo? Como um driver.
+[00:23:18] You: Você não precisa lembrar a síntese exata, isso não é importante, eu só quero que você, se você não lembrar a síntese, você pode dizer, apenas em um nível mais alto, está bem, me diga, page.
+[00:23:19] Them: Ok, então...
+[00:23:31] You: What? Are you going to paste it in?
+[00:23:32] Them: O link, você disse, certo? Ah, pode ser o Xpath ou...
+[00:23:46] You: Sim, mas você pode dizer, use uma língua de alto nível, está bem. Vamos usar o código pseudo, ok? Então, é isso aí. Apenas use o código pseudo.
+[00:23:46] Them: Eu não me lembro o sintaxe agora.
+[00:23:59] You: Isso parece algo como um objeto de página. Como isso se veria em um código pseudo? Não, não, não. Page.what?
+[00:24:00] Them: O que você quer dizer? Um link? Um encor?
+[00:24:13] You: www.page.what? Go? Navigator? Clicker? What?
+[00:24:14] Them: Ah, ok, page.link to the, or go to, sorry, I don't understand.
+[00:24:27] You: O que eu quero dizer é, por exemplo, vou dar um exemplo, vai ser algo como page.navigate to link.
+[00:24:28] Them: Obrigado por assistir.
+[00:24:41] You: Não importa se o navegador existe ou não, estamos apenas falando de uma língua pseudo, pseudo-cool.
+[00:24:41] Them: Não importa o que aconteça.
+[00:24:55] You: Ok, então sim, ele navega para a primeira página, então vamos dizer a história, a história do pagamento, ok?
+[00:24:55] Them: Ok, depois disso, vamos para a página, clicar e...
+[00:25:08] You: Dependente, não?
+[00:25:09] Them: A conta, o bilhete, os pagamentos, depois disso, é só ir para a página e selecionar um.
+[00:25:23] You: Ok, então vamos focar agora na página, você provavelmente vai querer selecionar uma rola primeiro, porque se você não dizer qual rola...
+[00:25:23] Them: Eu não sei o preço específico.
+[00:25:36] You: Se você quiser selecionar, você não vai poder fazer isso. Se você selecionar uma linha, você encontra uma linha e depois clica no botão de contato.
+[00:25:37] Them: Se vocês tiverem alguma dúvida, talvez...
+[00:25:50] You: Quais são os desafios desse tipo de teste, agora que você disse para clicar e depois fazer algo?
+[00:25:51] Them: E aí, boa domingo e bem-vindos!
+[00:26:04] Them: Então, provavelmente, depois de clicar e enviar um mensagem, ou não sei, não enviar uma mensagem, confirmar...
+[00:26:18] You: Mas quais são os desafios de clicar, de dizer que o web...
+[00:26:18] Them: O que é o rejeito do build é o resultado esperado, o resultado esperado de uma pesquisa.
+[00:26:31] You: Há alguns desafios quando lidamos com isso, especialmente quando estamos fazendo testes de front-end.
+[00:26:32] Them: Obrigado por assistir.
+[00:26:45] You: Vamos supor que você tenha a ideia, você sabe como selecionar.
+[00:26:46] Them: Porque tem diferentes coisas e se não tivermos a ID, você quer dizer a ID?
+[00:26:59] You: Ok, o objetivo da página foi construído para que você possa, digamos, clicar na primeira linha, que abrirá a revisão do pagamento, e aí há um botão para rejeitar.
+[00:27:00] Them: Obrigado por assistir.
+[00:27:13] You: Mas você é o primeiro a clicar para ir àquela página. Então, durante essa transição, essas ações, quais são os desafios clássicos?
+[00:27:27] You: desse tipo de teste entre essas ações.
+[00:27:27] Them: Você pode ter muitas rolas, então eu vou ter que selecionar a correta rola.
+[00:27:41] You: Você sabe como selecionar a linha, você já sabe que tem a linha, você sabe o botão e você pode sucessivamente clicar no botão. Mas são desafios clássicos.
+[00:27:41] Them: Obrigado.
+[00:27:54] You: Obrigado por assistir.
+[00:27:55] Them: Oh, é o caminho para mim? Para acelerar o próximo?
+[00:28:08] You: Ok, se você não espera, o que vai acontecer?
+[00:28:09] Them: A próxima página é a clássica, eu acho, eu posso esperar para aparecer a próxima página.
+[00:28:22] Them: Obrigado por assistir.
+[00:28:36] You: Se você não tomar em consideração esse tempo de espera, quais são os sintomas clássicos disso?
+[00:28:36] Them: Obrigado.
+[00:28:50] You: E aí, no próximo dia, você vai correr de novo. E se você não espera, o que eu fiz?
+[00:28:50] Them: Ok.
+[00:29:04] You: Sim, sim.
+[00:29:04] Them: Ok, só para ter certeza, você está falando sobre o peso, certo? O deslize, para ser mais claro.
+[00:29:18] You: Algo assim. Se você não levar isso em consideração, é, na verdade, um dos problemas mais ominosos que você tem com testes de front-end.
+[00:29:18] Them: Ok, ok, muito bem.
+[00:29:31] You: É isso que eu estou perguntando.
+[00:29:32] Them: Eu sei o que você está falando, Welke, mas eu não me lembro exatamente o nome do EHOR.
+[00:29:45] You: E, como consequência...
+[00:29:46] Them: Mas, basicamente, eu perdi os elementos, os elementos não foram encontrados, desculpe.
+[00:29:59] You: O que vai acontecer com o teste, mesmo se não for errado, certo? Vai falhar, mesmo se o fichário funcionar.
+[00:29:59] Them: É tudo bem.
+[00:30:13] You: Sim, é isso que eu estou perguntando. Um dos maiores...
+[00:30:13] Them: Se você colocar osferd no final, isso vai falhar porque está no meio do caso de teste, certo?
+[00:30:27] You: Um dos maiores problemas de testes de front-end, e um dos maiores desafios, é o fato de que o teste vai se tornar fraco e vai falhar algumas vezes.
+[00:30:28] Them: Desejo.
+[00:30:41] You: Às vezes é melhor, às vezes não.
+[00:30:41] Them: Sim, mas não importa se isso é um teste de deflito ou algo assim, como um tempo.
+[00:30:54] You: Ok, identifique-se.
+[00:30:55] Them: Você vai encontrar o porquê da falha, certo? Você pode desbloquear e encontrar o problema.
+[00:31:08] You: Pode ser fácil ou talvez não. O que é o problema de um teste fleco, de um teste intermitente?
+[00:31:09] Them: Sim, você está certo. Depende, né?
+[00:31:23] You: O que eu estou dizendo é que você não pode confiar nisso, porque às vezes vai falhar porque o teste é mal escrito, e às vezes vai falhar porque alguém se enganou com a ferramenta. É isso que eu estou dizendo.
+[00:31:23] Them: Sim, ok.
+[00:31:36] You: E esse é um dos desafios de fazer testes de front-end, especialmente testes de front-end, porque você não pode...
+[00:31:36] Them: Ok, automação.
+[00:31:50] You: Ok, tudo bem.
+[00:31:50] Them: Você pode ter falhas na parte de trás e você não sabe porque tem alguma coisa na parte de trás ou talvez outra coisa.
+[00:32:04] You: So, next in the interval queue. Alright, so, tell me a little bit about the, you told me about the...
+[00:32:17] You: Vamos falar sobre testes agora, então podemos acabar com o roleplay por agora.
+[00:32:18] Them: Ok.
+[00:32:31] You: Eu gostaria que você me dissesse como você julga se um teste é bom ou não. Se você were to review a test, what kind of features of either characteristics you would...
+[00:32:45] You: E aí você pode verificar se é um teste bom ou não.
+[00:32:46] Them: Então, eu preciso ver se...
+[00:32:59] Them: Neste caso de teste, o corrector está fazendo o correto.
+[00:33:13] Them: O que acontece é que você tem um resultado correto e você controla se o resultado é bom, mas ele está controlando tudo.
+[00:33:26] Them: O que é o futuro?
+[00:33:40] Them: Isso é o que estávamos falando, a visão rejeita.
+[00:33:54] Them: Então, vamos ver se o view foi rejeitado, vamos ver se o view foi criado, se o usuário foi assinado.
+[00:34:08] Them: Sim, acho que é assim.
+[00:34:22] Them: Se você estiver controlando todas essas funções, e não apenas a função, se a qualidade for boa, se o usuário puder, como...
+[00:34:36] You: Ok, tudo bem.
+[00:34:36] Them: Façam o que realmente precisam fazer.
+[00:34:50] You: Então, temos dois aspectos desse texto de escrita, temos o Gherkin e o Gherkin.
+[00:34:50] Them: Obrigado por assistir.
+[00:35:03] You: Temos a implementação dos operadores que executam o que o Gherkin está pedindo.
+[00:35:18] You: E vai ter um mapeamento, então você pode fazer isso. Então, podemos falar sobre a qualidade dos testes e a qualidade dessa implementação.
+[00:35:18] Them: A construção dos produtos, certo.
+[00:35:31] You: Não, estamos falando apenas de testes agora. O que é um bom teste de brilho? E podemos falar sobre o que é um bom...
+[00:35:32] Them: Ok?
+[00:35:45] You: A implementação do operador é usada pela língua de Gherkin para operar o sistema. Ok, então vamos falar sobre a qualidade do...
+[00:35:59] You: A implementação agora. Então, estamos apenas falando de um aspecto de se é um bom código ou não, certo? Por exemplo, a questão do intermitente.
+[00:36:00] Them: Obrigado por assistir.
+[00:36:13] You: Se o teste não espera que as coisas aconteçam, eventualmente vai quebrar, certo? Ok, então, vamos nos concentrar agora nesta questão específica.
+[00:36:13] Them: Certo, ok.
+[00:36:26] You: Então, qual é a maneira certa de esperar?
+[00:36:27] Them: O que você está tentando dizer? Você quer dizer, tipo, em cor ou...
+[00:36:40] You: O que é o certo modo de escrever o código? O certo código para esperar?
+[00:36:41] Them: Como... apenas... sim, apenas... a maneira correta é basicamente usar...
+[00:36:54] Them: Obrigado por assistir.
+[00:37:08] You: Ok.
+[00:37:09] Them: A mensagem aparece, porque você não gasta muito tempo, se você colocar um tempo estatístico, tipo, espera 10 segundos, você vai perder muito tempo.
+[00:37:22] You: Ou não vão esperar o suficiente tempo, certo? Certo, e além disso, além disso, ok, então, espera até que...
+[00:37:22] Them: Sim.
+[00:37:36] You: Se alguma mensagem aparecer, tem mais alguma coisa que você gostaria de adicionar?
+[00:37:36] Them: Não é verdade, pode haver outras coisas como...
+[00:37:50] You: Ok, então, o que mais você precisa para que isso funcione corretamente? Você vai esperar para sempre?
+[00:37:50] Them: Ah não, se não aparecer...
+[00:38:03] Them: Você pode colocar um tempo específico, por exemplo, 10 segundos.
+[00:38:17] You: É isso, ok? Bom, tudo bem.
+[00:38:18] Them: O que vai acontecer depois desses 10 segundos é que vai falhar o teste, certo?
+[00:38:31] You: Vamos falar um pouco sobre como fazer isso.
+[00:38:31] Them: Isso é só para nós, né, porque no Playwright não precisamos usar weight desse jeito.
+[00:38:45] You: Muito obrigado, tchau.
+[00:38:45] Them: É algo que eu estava trabalhando e não usei porque o Playwright já tinha.
+[00:38:59] You: Ok, mas qual é o framework you?
+[00:38:59] Them: Então, você tem esse peso automático, certo?
+[00:39:13] You: Você é o mais profissional agora.
+[00:39:13] Them: Eu não sei, para ser honesto, eu acho que você joga bem e você está no mesmo nível.
+[00:39:26] You: Ok, tudo bem.
+[00:39:27] Them: Eu realmente gosto mais de usar playwrights, para ser honesto. Eu acho que é mais divertido.
+[00:39:40] You: O que é o playwright que faz com que seja mais divertido?
+[00:39:41] Them: Há uma nova ferramenta que podemos usar para a AI.
+[00:39:54] You: Ok?
+[00:39:54] Them: Então, eles podem mapá-lo automaticamente para você, mas não é tão bom, mas pode gastar algum tempo, para ser honesto.
+[00:40:08] You: Ok, isso também faz sentido.
+[00:40:08] Them: Eu não sei, eu uso Playwright com Python, então é a linha com Java, e eu gosto mais de Python.
+[00:40:22] You: Certo, então, deixe-me ver o que eu tenho que perguntar para você. Ok, me diga um pouco sobre o modelo do objeto de página.
+[00:40:35] You: Como funciona? E por que é bom?
+[00:40:36] Them: Sim, é bom porque é uma maneira clara de colocar as coisas específicas.
+[00:40:50] Them: Principalmente você separa as coisas, como a página de log-in, tudo da página de log-in na página.
+[00:41:03] Them: Obrigado por assistir.
+[00:41:17] Them: Desculpe, você escolhe tudo da página de log-in e coloca em esta classe, e você pode separar as coisas como quiser.
+[00:41:31] Them: Onde eu tenho os métodos, é fácil de manter, de atualizar, de fazer.
+[00:41:44] You: Ok? Ok.
+[00:41:45] Them: Obrigado por assistir.
+[00:41:59] You: É tudo bem, é tudo bem. Na verdade, deixa eu só te dar uma olhada. Tudo bem, eu acho que podemos fechar em termos de...
+[00:41:59] Them: Muito obrigado.
+[00:42:12] You: Agora vamos entrar em um assunto um pouco mais explorativo aqui. Eu quero saber o seu uso de A hoje em dia.
+[00:42:13] Them: Obrigado.
+[00:42:26] You: O que você acha? Como você usa ela? Se é que você usa ela para acelerar a sua produtividade?
+[00:42:27] Them: Obrigado por assistir.
+[00:42:40] Them: Eu posso dizer que sim, que eu gosto bastante, eu usei com o Cloud Code para fazer códigos, mas acho que é algo que tem que ficar muito em cima olhando isso.
+[00:42:54] Them: E eu usei um pouco de forma diferente com o GitHub Copilot, lá na empresa que eu estava trabalhando, eu usei um pouco de forma diferente com o GitHub Copilot.
+[00:43:08] Them: Por exemplo, a gente tinha uma reunião que era baseada em alguns tickets do Gira, que ficavam com demandas abertas sobre QAs.
+[00:43:22] Them: Eu criei uma ferramenta, basicamente, que ele buscava esses tickets que estavam sendo, que ainda estavam com a demanda ali do QA aberta.
+[00:43:36] Them: A gente tinha uma tag específica que o A needed, e eu busquei tudo, botava no e-mail e podia fazer um template e mandava pro pessoal. Então eu fui fazendo algumas ferramentas, eu fiz essa...
+[00:43:50] Them: Eu fiz uma de triagem de bugs, onde eu identificava se tinha algum bug duplicado, com o mesmo título, ou com algum título parecido, com o mesmo resultado, no gírio, e daí ele eliminava.
+[00:44:17] You: Obrigado por assistir.
+[00:44:17] Them: E também, eu comecei a fazer um de test plan, só que eu achei ele meio...
+[00:44:31] Them: Estava engasgando em algumas criações de planos de teste, aí eu criava o template, buscava outras informações do Gira, como a data de lançamento e tudo mais.
+[00:44:45] Them: E no fim, eu tive que escrever o test case ali porque ele estava criando o test case errado, em vez de criar baseado em cima das informações do Jira.
+[00:44:58] Them: E assim, eu acho que é algo muito útil, facilitou ali...
+[00:45:13] Them: Eu acho que tem muito espaço para crescer, eu gosto, e hoje em dia, como eu não estou trabalhando, é um pouco diferente, eu tenho que usar mais do meu dia a dia.
+[00:45:26] You: Você não está trabalhando hoje?
+[00:45:27] Them: Seja para estudar, para fazer um planejamento, para fazer algum curso, essas coisas assim, se tu quiser.
+[00:45:40] You: Entendi. Tá legal.
+[00:45:40] Them: Eu estou disponível para começar imediatamente.
+[00:45:54] You: Bom, olha, eu uso para uma porrada de coisa, para falar a verdade. Eu estou experimentando em várias áreas para...
+[00:45:55] Them: Eu ia perguntar como é que você usa hoje em dia, se tu puder me dizer.
+[00:46:08] You: Para ver onde ajuda, onde atrapalha, onde dá ganho, como fazer dar ganho. Então, vai desde escrever código, de fato.
+[00:46:22] You: O que é óbvio. Mas eu também, com certa frequência, para atividades do dia a dia, às vezes eu preciso de uma ferramenta.
+[00:46:22] Them: Esse é o mais óbvio, todo mundo acaba falando assim.
+[00:46:36] Them: Obrigado por assistir.
+[00:46:49] You: Eu posso fazer uma ferramenta que grava o áudio e começa a fazer a transcrição imediatamente.
+[00:47:03] You: Obrigado por assistir.
+[00:47:03] Them: Interessante.
+[00:47:17] You: Eu já tinha algumas que eu...
+[00:47:31] You: O que eu conhecia, usava no passado, tipo o War Shark, mas eu precisava de umas coisas um pouco mais focadas e que me dessem um nível de absorção melhor, mais fácil de ler.
+[00:47:44] You: Muito ruim fazer isso no Airshark, então eu mandei fazer uma ferramenta para isso e fiz.
+[00:47:45] Them: Obrigado por assistir.
+[00:47:59] You: Muitas vezes eu utilizo a IA para me ajudar a resolver o problema que eu estou, que o meu foco principal não é o que a IA está fazendo necessariamente, mas que vai me ajudar.
+[00:47:59] Them: Obrigado por assistir. Te ajudo.
+[00:48:13] You: E aí vai para a organização, para preparar a entrevista, para analisar resultados, na hora que eu coloco as minhas observações, depois avalio os resultados, caso...
+[00:48:13] Them: Obrigado por assistir.
+[00:48:26] You: Para ter uma segunda cabeça, uma segunda opinião, vamos dizer assim, para fazer brainstorming. Então, para muita coisa, vai experimentando, algumas coisas vão funcionar bem, outras não.
+[00:48:27] Them: Muito bom.
+[00:48:40] You: Mas o principal é descobrir como tirar o máximo da ferramenta, porque a IA é uma ferramenta e a gente...
+[00:48:40] Them: Obrigado por assistir, tchau!
+[00:48:54] You: Só usar ela cegamente é uma tolice. Acreditar no que ela gera cegamente não funciona. Então você tem que descobrir como você faz ela fazer aquilo que você quer do jeito certo.
+[00:48:54] Them: É muito interessante.
+[00:49:22] You: Restrições de como a documentação tem que ser, o que é relevante, o que não é relevante. Então tem muita coisa que dá para usar e eu tenho experimentado de várias formas.
+[00:49:22] Them: Legal, eu acho que também é bem...
+[00:49:36] Them: Para analisar gráficos, por exemplo, tem muitos gráficos, tinha um onde eu trabalhava Splunk, a gente tinha vários dashboards, e às vezes, por exemplo, tinha um spike menorzinho, mas passava batido.
+[00:49:49] You: Isso aí. Legal.
+[00:49:50] Them: Alguma pessoa. E daí a gente jogava lá, ela puxava, ó, isso aqui aconteceu uma vez a cada mês do ano passado, sabe? Uma coisa interessante.
+[00:50:03] You: Vamos ter um espaço, a gente começou um espaço mais variado aqui, mas o que você vai contar das coisas que você fez de teste?
+[00:50:03] Them: Obrigado.
+[00:50:17] You: O que foi o teste mais difícil e mais interessante que você conseguiu implementar? Não necessariamente mais difícil, mas uma situação, uma coisa que você conseguiu testar que era mais desafiador.
+[00:50:30] You: O que foi que você quis?
+[00:50:31] Them: Obrigado.
+[00:50:45] Them: Bom, eu já trabalhei com duas coisas que eu acho muito interessantes, eu vou puxar uma, eu trabalhei numa empresa que era um, digamos que era um WhatsApp, só que ele era de uma empresa que era um WhatsApp,
+[00:50:58] Them: Eu acho que um dos pontos principais, quando eu comecei a testar, eu vi que não existe um test case por aqui.
+[00:51:13] Them: E aí eu acabo tipo, opa, eu acho que eu achei algum gap aqui e eu vou dar um, acho que achei sem ter nenhuma convicção, né, mas vou atrás pra ver, entender o que pode estar acontecendo.
+[00:51:26] Them: E, por exemplo, daquela vez foi um caso onde o usuário estava, a gente tinha um WhatsApp ali, né, como eu falei, ele estava durante uma reunião, sei lá, ligando para alguém, uma video call, e se...
+[00:51:40] Them: Se alguém pegasse, porque podia fazer isso, né, deletar a conta dela no...
+[00:51:54] Them: O que deveria acontecer na teoria era a pessoa ser deslogada, sair da reunião e, teoricamente...
+[00:52:08] Them: Eu lembro que eu fiz isso e eu acabei descobrindo que a pessoa continuava na video call e o aplicativo não crashava nem nada, continuava a ficar usando e ficava armazenando o dedo.
+[00:52:21] Them: Obrigado por assistir!
+[00:52:36] Them: E foi marcante pra mim, acho que foi isso. Aí eu acabei escrevendo o teste case, explicando pra todo mundo, e com o aerógono militar acho que também foi um pouco marcante.
+[00:52:49] You: Legal? E aí você conseguiu fazer um teste de queijo para pegar essa situação, mostrar que estava quebrada?
+[00:52:50] Them: Isso, e aí a gente criou uma rotina de poder testar isso sempre.
+[00:53:03] Them: Como já tinha bastante gente na empresa na época e ninguém no que tinha feito, foi legal poder mostrar que conseguia ainda achar furos e melhorar a qualidade.
+[00:53:17] You: Legal. É um caso interessante, né?
+[00:53:17] Them: O principal fator do QA não é só ficar achando bug, mas é melhorar o produto.
+[00:53:30] You: Um caso muito típico. Corner case, bem, poderia, claro.
+[00:53:31] Them: Sim, bem específico. É, não foi tipo, digamos assim, ah, que alguém poderia fazer isso todo dia ou alguma coisa, mas poderia acontecer.
+[00:53:45] You: Bem interessante, tinha uma coisa que estava na cabeça para eu perguntar, deixa eu fazer o tic tac funcionar, peraí.
+[00:53:58] You: Ah, sim, lembrei. Agora falando um pouco assim de como lidar com as situações do dia a dia. Menos técnico, mas lidar mais...
+[00:53:59] Them: Soft skill.
+[00:54:12] You: Para você, como é lidar com pessoas que, digamos que você está lá no...
+[00:54:12] Them: Obrigado por assistir.
+[00:54:26] You: Você fez um test case, você está construindo um test case e as pessoas começam a te apressar, como é que você lida com isso?
+[00:54:40] You: Não, porque eu preciso entregar amanhã, porque o negócio tem que estar pronto hoje, porque amanhã é o deadline. Como é que você agiria, assim, com essa pessoa? Fosse porque é um tech lead que está ali.
+[00:54:41] Them: Obrigado por assistir.
+[00:54:54] Them: Eu não tenho problema com isso, eu sou uma pessoa, na minha opinião, bem fácil de lidar e eu também lido muito bem com as pessoas.
+[00:55:07] Them: Se eu precisasse ficar até mais tarde, eu não tenho problema com isso.
+[00:55:21] Them: O que já me aconteceu, por exemplo, surgiu uma iniciativa e eu precisava entregar um plano de teste.
+[00:55:35] Them: Obrigado por assistir.
+[00:55:49] Them: A emergência pode me chamar e agora estou focado aqui nisso. E daí peguei as informações que eu precisava e fiz. Então não tem problema, vou fazer e vou explicar.
+[00:56:03] Them: O desenvolvimento me pediu uma conta para uma aplicação e eu tinha que criar para ele.
+[00:56:17] Them: E aí eu falo assim, no momento eu tô ocupado com isso aqui, tu pode pedir pro, sei lá, pro Gabriel que ele pode criar a conta pra ti, porque eu tô ocupado e tem uma demanda urgente pra amanhã.
+[00:56:30] You: Tá legal? Você sabendo que não vai dar.
+[00:56:31] Them: Não precisa ser grosso, não precisa ser mal educado, é só ter paciência e explicar.
+[00:56:44] You: Você tem certeza que não vai dar? Como que você faria a explicação?
+[00:56:45] Them: Sabendo que não vai dar, eu já sei que não vai dar, a primeira coisa que eu vou explicar é que não vai dar tempo.
+[00:56:58] Them: A gente vai conseguir acabar porque a gente...
+[00:57:12] Them: Obrigado por assistir.
+[00:57:26] Them: Eu posso entregar o cump que eu já tenho, que são todas as informações que eu já tenho, ou digamos assim, ainda falta preencher algumas informações, mas algumas...
+[00:57:40] Them: Eu não tenho essas informações e a pessoa que deveria me passar não está aí. Eu já procurei, fui atrás.
+[00:57:54] You: Tá bom. Bom, esgotou o nosso tempo aqui, então, obrigado aí pela presença, Nicholas. A gente vai se falando aí. O pessoal me chamou de Takeuchi, na verdade, tá?
+[00:57:54] Them: Obrigado, Gabriel. Até a próxima.
+[00:58:07] You: Não que tenha problema me chamar de Gabriel, porque obviamente é meu nome, mas se você falar para alguém aqui dentro, Gabriel, o pessoal fala, quem? O que você está falando?
+[00:58:08] Them: É que eu não sabia também, né?
+[00:58:21] You: Valeu, Nicolas. Até mais.
+[00:58:21] Them: Então, pra gente conhecer até mais, tchau.

@@ -3,8 +3,9 @@
 import numpy as np
 import pytest
 
-from omniscribe.recorder import to_stereo, _dbfs, _meter_bar
-from omniscribe.transcriber import _to_mono16k
+from omniscribe.recording.audio import to_stereo
+from omniscribe.recording.meters import dbfs as _dbfs, meter_bar as _meter_bar
+from omniscribe.transcription.audio import to_mono16k as _to_mono16k
 
 
 class TestToStereo:

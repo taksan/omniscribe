@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from omniscribe.recorder import (
-    _looks_like_pulse_source,
+from omniscribe.recording.devices import (
+    looks_like_pulse_source as _looks_like_pulse_source,
     detect_monitor_source,
     detect_default_mic_source,
 )
@@ -36,15 +36,15 @@ class TestLooksLikePulseSource:
 class TestDetectMonitorSource:
     """Tests for detect_monitor_source function."""
 
-    @patch("omniscribe.recorder.shutil.which")
+    @patch("omniscribe.recording.devices.shutil.which")
     def test_no_pactl(self, mock_which):
         """Test returns None when pactl is not available."""
         mock_which.return_value = None
         result = detect_monitor_source()
         assert result is None
 
-    @patch("omniscribe.recorder.shutil.which")
-    @patch("omniscribe.recorder.subprocess.check_output")
+    @patch("omniscribe.recording.devices.shutil.which")
+    @patch("omniscribe.recording.devices.subprocess.check_output")
     def test_success(self, mock_check_output, mock_which):
         """Test successful detection of monitor source."""
         mock_which.return_value = "/usr/bin/pactl"
@@ -54,8 +54,8 @@ class TestDetectMonitorSource:
         
         assert result == "alsa_output.pci-0000.analog-stereo.monitor"
 
-    @patch("omniscribe.recorder.shutil.which")
-    @patch("omniscribe.recorder.subprocess.check_output")
+    @patch("omniscribe.recording.devices.shutil.which")
+    @patch("omniscribe.recording.devices.subprocess.check_output")
     def test_pactl_error(self, mock_check_output, mock_which):
         """Test returns None when pactl fails."""
         mock_which.return_value = "/usr/bin/pactl"
@@ -70,15 +70,15 @@ class TestDetectMonitorSource:
 class TestDetectDefaultMicSource:
     """Tests for detect_default_mic_source function."""
 
-    @patch("omniscribe.recorder.shutil.which")
+    @patch("omniscribe.recording.devices.shutil.which")
     def test_no_pactl(self, mock_which):
         """Test returns None when pactl is not available."""
         mock_which.return_value = None
         result = detect_default_mic_source()
         assert result is None
 
-    @patch("omniscribe.recorder.shutil.which")
-    @patch("omniscribe.recorder.subprocess.check_output")
+    @patch("omniscribe.recording.devices.shutil.which")
+    @patch("omniscribe.recording.devices.subprocess.check_output")
     def test_success(self, mock_check_output, mock_which):
         """Test successful detection of default mic source."""
         mock_which.return_value = "/usr/bin/pactl"

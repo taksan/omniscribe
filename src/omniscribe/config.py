@@ -49,10 +49,10 @@ class Config:
     # Transcription quality filtering
     enable_hallucination_filter: bool = True
     hallucination_blocklist: str | None = None
-    silence_threshold_db: float = -50.0
+    silence_threshold_db: float = -45.0
     per_segment_output: bool = True
     min_logprob: float = -1.0
-    max_no_speech_prob: float = 0.5
+    max_no_speech_prob: float = 0.4
     enable_repetition_filter: bool = True
 
     # Channel layout (split by default for re-transcription with speaker labels)
@@ -102,10 +102,10 @@ class Config:
             "check_seconds": 3.0,
             "enable_hallucination_filter": True,
             "hallucination_blocklist": None,
-            "silence_threshold_db": -50.0,
+            "silence_threshold_db": -45.0,
             "per_segment_output": True,
             "min_logprob": -1.0,
-            "max_no_speech_prob": 0.5,
+            "max_no_speech_prob": 0.4,
             "enable_repetition_filter": True,
             "split_channels": True,
         }
@@ -214,7 +214,7 @@ def save_default_config(path: Path | None = None) -> Path:
             "silence_threshold_db": "Skip audio chunks below this dB threshold",
             "per_segment_output": "Output each Whisper segment with its own timestamp",
             "min_logprob": "Minimum avg_logprob for segment acceptance (-1.0)",
-            "max_no_speech_prob": "Maximum no_speech_prob for segment acceptance (0.5)",
+            "max_no_speech_prob": "Maximum no_speech_prob for segment acceptance (0.4)",
             "enable_repetition_filter": "Filter repeated identical segments",
             "split_channels": "Save main WAV as split stereo (L=Mic, R=System) (default: true)",
             "mic_label": "Label for mic in transcript",

@@ -16,7 +16,7 @@ Example:
 __version__ = "0.1.0"
 __all__ = ["record", "LiveTranscriber", "check_inputs", "list_devices", "Config", "load_config", "OmniScribeTUI"]
 
-from omniscribe.recorder import record, check_inputs, list_devices
-from omniscribe.transcriber import LiveTranscriber
 from omniscribe.config import Config, load_config
-from omniscribe.tui import OmniScribeTUI
+from omniscribe.recording import check_inputs, list_devices, record
+from omniscribe.transcription import LiveTranscriber
+from omniscribe.ui import OmniScribeTUI
