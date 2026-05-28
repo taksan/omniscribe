@@ -5,6 +5,9 @@ WHISPER_SR = 16000
 DEFAULT_HALLUCINATION_PATTERNS = [
     # YouTube/streaming metadata
     "obrigado por assistir",
+    "muito obrigado por assistir",
+    "muito obrigado, até a próxima",
+    "obrigado, até a próxima",
     "thanks for watching",
     "subscribe to the channel",
     "like and subscribe",
