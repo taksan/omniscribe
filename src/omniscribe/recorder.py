@@ -857,12 +857,21 @@ def record(
             sys_peak_acc = max(sys_peak_acc, sys_peak_block)
 
             now = time.monotonic()
-            if mic_peak_block > SILENCE_THRESHOLD:
+            # Skip silence detection for sources the user has muted via the TUI.
+            mic_muted = bool(tui_instance and tui_instance.state.mic_muted)
+            sys_muted = bool(tui_instance and tui_instance.state.sys_muted)
+            if mic_muted:
+                last_signal_time["mic"] = now
+                alerted["mic"] = False
+            elif mic_peak_block > SILENCE_THRESHOLD:
                 last_signal_time["mic"] = now
                 if alerted["mic"]:
                     print(f"\n  >> mic audio resumed at {seconds:6.1f}s", flush=True)
                     alerted["mic"] = False
-            if sys_peak_block > SILENCE_THRESHOLD:
+            if sys_muted:
+                last_signal_time["system"] = now
+                alerted["system"] = False
+            elif sys_peak_block > SILENCE_THRESHOLD:
                 last_signal_time["system"] = now
                 if alerted["system"]:
                     print(f"\n  >> system audio resumed at {seconds:6.1f}s", flush=True)
@@ -871,6 +880,10 @@ def record(
             if silence_alert_seconds > 0 and not stop.is_set():
                 for src in ("mic", "system"):
                     if alerted[src]:
+                        continue
+                    if src == "mic" and mic_muted:
+                        continue
+                    if src == "system" and sys_muted:
                         continue
                     if now - last_signal_time[src] >= silence_alert_seconds:
                         alerted[src] = True

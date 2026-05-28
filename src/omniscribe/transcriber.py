@@ -13,6 +13,7 @@ import datetime as dt
 import queue
 import re
 import threading
+import unicodedata
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -144,6 +145,7 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "obrigado por assistir!",
     "obrigado por assistir.",
     "obrigado por assistir,",
+    "obrigado por assistir ",  # trailing space variant
     "se inscreva no canal",
     "ative o sininho",
     "acompanhe a avaliação",
@@ -159,6 +161,13 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "the the the the",
     "um um um um",
     "e e e e",
+    # Portuguese farewells (often hallucinated at end of audio)
+    "tchau, tchau",
+    "tchau, tchau.",
+    # Portuguese subtitle/credit artifacts
+    "legenda por",
+    "www.opusdei.pt",
+    "acesse o nosso site",
     # Generic/empty common hallucinations
     " WEBVTT",
     " kind: captions",
@@ -191,12 +200,13 @@ class HallucinationFilter:
 
     def is_hallucination(self, text: str) -> bool:
         """Check if text matches any hallucination pattern."""
-        text_lower = text.lower()
+        # Normalize unicode and strip whitespace for matching
+        text_normalized = unicodedata.normalize('NFC', text.lower()).strip()
         for pattern in self.patterns:
-            if pattern.search(text_lower):
+            if pattern.search(text_normalized):
                 return True
         # Also detect excessive repetition (same word 4+ times in a row)
-        words = text_lower.split()
+        words = text_normalized.split()
         if len(words) >= 4:
             for i in range(len(words) - 3):
                 if words[i] == words[i+1] == words[i+2] == words[i+3]:
@@ -524,9 +534,13 @@ class LiveTranscriber:
                 continue
             
             # Hallucination filter
-            if self._hallucination_filter and self._hallucination_filter.is_hallucination(text):
-                print(f"[Hallucination filtered: {text[:50]}...]")
-                continue
+            if self._hallucination_filter:
+                if self._hallucination_filter.is_hallucination(text):
+                    print(f"[Hallucination filtered: {text[:50]}...]")
+                    continue
+                elif any(p in text.lower() for p in ["obrigado", "tchau", "assistir"]):
+                    # Log near-misses for debugging
+                    print(f"[DEBUG: near-miss: {text[:60]}]")
             
             # Repetition filter
             if self._is_repetition(label, text):

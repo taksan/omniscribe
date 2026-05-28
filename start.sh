@@ -3,7 +3,7 @@
 # Edit this file to customize your default recording options.
 
 # Navigate to project root (where this script is located)
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 # Activate virtual environment
 source .venv/bin/activate
