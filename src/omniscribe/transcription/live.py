@@ -272,9 +272,14 @@ class LiveTranscriber:
             return False
         if hasattr(seg, "compression_ratio") and seg.compression_ratio > 2.0:
             return False
-        if self._hallucination_filter and self._hallucination_filter.is_hallucination(text):
-            print(f"[Hallucination filtered: {text[:50]}...]")
-            return False
+        if self._hallucination_filter:
+            # Calculate segment duration for duration-based hallucination detection
+            duration = None
+            if hasattr(seg, "start") and hasattr(seg, "end"):
+                duration = seg.end - seg.start
+            if self._hallucination_filter.is_hallucination(text, duration_seconds=duration):
+                print(f"[Hallucination filtered: {text[:50]}...]")
+                return False
         if self._is_repetition(label, text):
             print(f"[Repetition filtered: {text[:50]}...]")
             return False

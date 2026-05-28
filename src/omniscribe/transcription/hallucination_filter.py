@@ -12,6 +12,11 @@ from .constants import DEFAULT_HALLUCINATION_PATTERNS
 class HallucinationFilter:
     """Filter to detect and reject Whisper hallucination patterns."""
 
+    # Average speaking rate: ~3 words/second (150-180 wpm in Portuguese)
+    WORDS_PER_SECOND = 3.0
+    # If expected duration > actual * this threshold, likely a hallucination
+    DURATION_MISMATCH_THRESHOLD = 1.5
+
     def __init__(self, custom_blocklist_path: Path | None = None):
         self.patterns: list[re.Pattern[str]] = [
             re.compile(re.escape(pattern), re.IGNORECASE)
@@ -30,7 +35,7 @@ class HallucinationFilter:
         except OSError as e:
             print(f"Warning: Could not load custom blocklist from {path}: {e}")
 
-    def is_hallucination(self, text: str) -> bool:
+    def is_hallucination(self, text: str, duration_seconds: float | None = None) -> bool:
         text_normalized = unicodedata.normalize("NFC", text.lower()).strip()
         # Normalize whitespace for pattern matching
         text_normalized_ws = " ".join(text_normalized.split())
@@ -41,7 +46,27 @@ class HallucinationFilter:
 
         # Detect repetitive words (common Whisper glitches)
         words = text_normalized.split()
-        return self._has_repetition_glitch(words)
+        if self._has_repetition_glitch(words):
+            return True
+
+        # Check for duration mismatch (phrase takes longer to say than audio duration)
+        if duration_seconds is not None and duration_seconds > 0:
+            if self._has_duration_mismatch(text_normalized, duration_seconds):
+                return True
+
+        return False
+
+    def _has_duration_mismatch(self, text: str, duration_seconds: float) -> bool:
+        # Estimate expected speaking time based on word count
+        words = len(text.split())
+        expected_seconds = words / self.WORDS_PER_SECOND
+
+        # If text would take significantly longer than the audio duration, it's likely hallucinated
+        # Allow 1.5x threshold for fast speakers or slurred speech
+        if expected_seconds > 0 and duration_seconds > 0:
+            ratio = expected_seconds / duration_seconds
+            return ratio > self.DURATION_MISMATCH_THRESHOLD
+        return False
 
     def _has_repetition_glitch(self, words: list[str]) -> bool:
         if len(words) < 4:
