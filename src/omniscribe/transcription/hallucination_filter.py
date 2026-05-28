@@ -6,6 +6,8 @@ import re
 import unicodedata
 from pathlib import Path
 
+import numpy as np
+
 from .constants import DEFAULT_HALLUCINATION_PATTERNS
 
 
@@ -35,7 +37,12 @@ class HallucinationFilter:
         except OSError as e:
             print(f"Warning: Could not load custom blocklist from {path}: {e}")
 
-    def is_hallucination(self, text: str, duration_seconds: float | None = None) -> bool:
+    def is_hallucination(
+        self,
+        text: str,
+        duration_seconds: float | None = None,
+        audio: np.ndarray | None = None,
+    ) -> bool:
         text_normalized = unicodedata.normalize("NFC", text.lower()).strip()
         # Normalize whitespace for pattern matching
         text_normalized_ws = " ".join(text_normalized.split())
@@ -52,6 +59,11 @@ class HallucinationFilter:
         # Check for duration mismatch (phrase takes longer to say than audio duration)
         if duration_seconds is not None and duration_seconds > 0:
             if self._has_duration_mismatch(text_normalized, duration_seconds):
+                return True
+
+        # Check for low-energy audio (silence/noise producing transcription)
+        if audio is not None and len(text_normalized) > 0:
+            if self._has_low_energy_mismatch(audio, text_normalized):
                 return True
 
         return False
@@ -77,6 +89,29 @@ class HallucinationFilter:
         for i in range(len(words) - 3):
             if words[i] == words[i + 1] == words[i + 2] == words[i + 3]:
                 return True
+
+        return False
+
+    def _has_low_energy_mismatch(self, audio: np.ndarray, text: str) -> bool:
+        # Check if there's transcribed text from very low-energy audio
+        # This catches hallucinations on silence/background noise
+        if audio.size == 0:
+            return False
+
+        # Calculate audio energy (RMS in dB)
+        rms = np.sqrt(np.mean(audio**2))
+        db = 20 * np.log10(max(rms, 1e-10))
+
+        # Threshold: if audio is extremely quiet (below -38 dB) and we have text,
+        # it's very likely a hallucination. Real speech even when whispered is
+        # typically above -35 dB. Use -38 to allow for measurement variance.
+        # Only flag if we have multiple words (avoid false positives on short utterances).
+        if db < -38.0:
+            # Audio is too quiet to contain intelligible speech
+            # Check if we have substantial text (more than just artifacts)
+            words = text.split()
+            if len(words) >= 2:
+                return True  # Suspicious: text from very quiet audio
 
         return False
 

@@ -248,7 +248,7 @@ class LiveTranscriber:
         valid_segments = [
             seg
             for seg in segments_list
-            if self._accept_segment(label, seg.text.strip(), seg)
+            if self._accept_segment(label, seg.text.strip(), seg, audio)
         ]
         if not valid_segments:
             return
@@ -263,7 +263,7 @@ class LiveTranscriber:
         else:
             self._write_chunk(label, valid_segments)
 
-    def _accept_segment(self, label: str, text: str, seg) -> bool:
+    def _accept_segment(self, label: str, text: str, seg, audio: np.ndarray | None = None) -> bool:
         if not text:
             return False
         if hasattr(seg, "avg_logprob") and seg.avg_logprob < self.min_logprob:
@@ -277,7 +277,9 @@ class LiveTranscriber:
             duration = None
             if hasattr(seg, "start") and hasattr(seg, "end"):
                 duration = seg.end - seg.start
-            if self._hallucination_filter.is_hallucination(text, duration_seconds=duration):
+            if self._hallucination_filter.is_hallucination(
+                text, duration_seconds=duration, audio=audio
+            ):
                 print(f"[Hallucination filtered: {text[:50]}...]")
                 return False
         if self._is_repetition(label, text):
