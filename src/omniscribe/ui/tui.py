@@ -97,16 +97,23 @@ class OmniScribeTUI:
     
     def _make_transcription_panel(self) -> Panel:
         """Create the transcription settings panel (top middle-left)."""
-        gpu_status = "[green]Yes[/green]" if self.state.gpu_detected else "[red]No[/red]"
+        gpu_status_text = "Yes" if self.state.gpu_detected else "No"
+        gpu_status_color = "green" if self.state.gpu_detected else "red"
         lang = self.state.language or "Auto"
         prompt = self.state.initial_prompt or "None"
-        
+
+        # Build GPU detected line with proper color styling
+        gpu_line = Text.assemble(
+            "GPU detected: ",
+            Text(gpu_status_text, style=gpu_status_color)
+        )
+
         content = Group(
             Text(f"Whisper model: {self.state.whisper_model}", style="cyan"),
             Text(f"Device: {self.state.whisper_device}", style="cyan"),
             Text(f"Language: {lang}", style="cyan"),
             Text(f"Initial prompt: {prompt[:30]}{'...' if len(str(prompt)) > 30 else ''}", style="cyan"),
-            Text(f"GPU detected: {gpu_status}"),
+            gpu_line,
         )
         return Panel(content, title="[b blue]Transcription", border_style="blue")
     
