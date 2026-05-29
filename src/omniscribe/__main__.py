@@ -7,7 +7,7 @@ Usage:
     python -m omniscribe -o meeting.wav --transcribe
 """
 
-from omniscribe.recorder import main
+from omniscribe.recording.cli import main
 import sys
 
 if __name__ == "__main__":
