@@ -97,6 +97,8 @@ def record(
     tui_instance = None
     if tui:
         tui_instance = create_tui()
+        # Set initialization status BEFORE starting TUI display
+        tui_instance.state.initialization_status = "Initializing..."
         tui_instance.set_devices(mic_name, sys_name, mic_gain, sys_gain)
         tui_instance.set_transcription_config(
             model=whisper_model,
@@ -105,6 +107,7 @@ def record(
             initial_prompt=initial_prompt,
             gpu_detected=False,
         )
+        # Start TUI display - now with initialization status visible
         tui_instance.start()
     else:
         print()
@@ -221,7 +224,6 @@ def record(
         transcriber.start()
 
         if tui_instance:
-            tui_instance.state.initialization_status = "Configuring transcription settings..."
             # Update TUI with actual recording configuration
             tui_instance.state.gpu_detected = transcriber.gpu_detected
             tui_instance.state.whisper_model = whisper_config.whisper_model
@@ -234,7 +236,7 @@ def record(
             tui_instance.state.hallucination_filter_enabled = whisper_config.enable_hallucination_filter
             tui_instance.state.repetition_filter_enabled = enable_repetition_filter
             tui_instance.state.version = get_git_sha()
-            tui_instance.state.initialization_status = ""  # Clear when done
+            tui_instance.state.initialization_status = ""  # Clear when done - now shows real config
         else:
             print(f"Transcript: {transcript_path}")
 
