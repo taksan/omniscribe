@@ -235,6 +235,9 @@ def record(
             tui_instance.state.silence_threshold_db = silence_threshold_db
             tui_instance.state.hallucination_filter_enabled = whisper_config.enable_hallucination_filter
             tui_instance.state.repetition_filter_enabled = enable_repetition_filter
+            tui_instance.state.min_logprob = whisper_config.min_logprob
+            tui_instance.state.max_no_speech_prob = whisper_config.max_no_speech_prob
+            tui_instance.state.per_segment_output = whisper_config.per_segment_output
             tui_instance.state.version = get_git_sha()
             tui_instance.state.initialization_status = ""  # Clear when done - now shows real config
         else:

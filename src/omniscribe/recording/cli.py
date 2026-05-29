@@ -174,13 +174,13 @@ def main() -> int:
     p.add_argument("--hallucination-blocklist", type=Path, default=None,
                    help="path to custom file with hallucination patterns (one per line)")
     p.add_argument("--silence-threshold-db", type=float, default=-50.0,
-                   help="skip audio chunks below this RMS dB threshold (default: -50)")
+                   help="skip audio chunks below this RMS dB threshold (default: -50.0)")
     p.add_argument("--no-per-segment", action="store_true",
                    help="output one line per chunk instead of per-segment timestamps")
-    p.add_argument("--min-logprob", type=float, default=-1.0,
-                   help="minimum avg_logprob for segment acceptance (default: -1.0)")
-    p.add_argument("--max-no-speech-prob", type=float, default=0.5,
-                   help="maximum no_speech_prob for segment acceptance (default: 0.5)")
+    p.add_argument("--min-logprob", type=float, default=-0.7,
+                   help="minimum avg_logprob for segment acceptance (default: -0.7)")
+    p.add_argument("--max-no-speech-prob", type=float, default=0.4,
+                   help="maximum no_speech_prob for segment acceptance (default: 0.4)")
     p.add_argument("--no-repetition-filter", action="store_true",
                    help="disable filtering of repeated identical segments")
     p.add_argument("--no-split-channels", action="store_true",

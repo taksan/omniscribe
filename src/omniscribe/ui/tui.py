@@ -55,6 +55,9 @@ class TUIState:
     # Filtering settings
     hallucination_filter_enabled: bool = True
     repetition_filter_enabled: bool = True
+    min_logprob: float = -0.7
+    max_no_speech_prob: float = 0.4
+    per_segment_output: bool = True
 
     # Version info
     version: str = "unknown"
@@ -148,13 +151,14 @@ class OmniScribeTUI:
         else:
             halluc_status = Text.assemble(
                 "Hallucination Filter: ",
-                Text("enabled", style="green") if self.state.hallucination_filter_enabled else Text("disabled", style="dim")
+                Text("enabled", style="green") if self.state.hallucination_filter_enabled else Text("disabled", style="dim red")
             )
             rep_status = Text.assemble(
                 "Repetition Filter: ",
-                Text("enabled", style="green") if self.state.repetition_filter_enabled else Text("disabled", style="dim")
+                Text("enabled", style="green") if self.state.repetition_filter_enabled else Text("disabled", style="dim red")
             )
 
+        per_seg_text = "per-segment" if self.state.per_segment_output else "per-chunk"
         content = Group(
             Text(f"Whisper model: {self.state.whisper_model}", style="cyan"),
             Text(f"Device: {self.state.whisper_device}", style="cyan"),
@@ -164,6 +168,9 @@ class OmniScribeTUI:
             Text("", style="dim"),  # Spacer
             halluc_status,
             rep_status,
+            Text(f"Min Logprob: {self.state.min_logprob:.1f}", style="yellow"),
+            Text(f"Max No-Speech: {self.state.max_no_speech_prob:.2f}", style="yellow"),
+            Text(f"Timestamps: {per_seg_text}", style="yellow"),
         )
         return Panel(content, title="[b blue]Transcription", border_style="blue")
     
