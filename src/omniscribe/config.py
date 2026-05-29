@@ -100,13 +100,10 @@ class Config:
             "silence_alert_seconds": 30.0,
             "show_meters": True,
             "check_seconds": 3.0,
-            "enable_hallucination_filter": True,
             "hallucination_blocklist": None,
             "silence_threshold_db": -50.0,
-            "per_segment_output": True,
             "min_logprob": -0.7,
             "max_no_speech_prob": 0.4,
-            "enable_repetition_filter": True,
             "split_channels": True,
         }
 
