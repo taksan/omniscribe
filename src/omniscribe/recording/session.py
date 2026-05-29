@@ -12,10 +12,6 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from omniscribe.transcription.factory import create_live_transcriber
-from omniscribe.transcription.transcript_metadata import get_git_sha
-from omniscribe.ui import create_tui
-
 from .alerts import play_alert_tone
 from .audio import to_stereo
 from .capture import PulseMonitorRecorder, StreamRecorder
@@ -96,6 +92,7 @@ def record(
 
     tui_instance = None
     if tui:
+        from omniscribe.ui import create_tui
         tui_instance = create_tui()
         # Set initialization status BEFORE starting TUI display
         tui_instance.state.initialization_status = "Initializing..."
@@ -193,6 +190,8 @@ def record(
     transcriber = None
     if transcribe:
         from omniscribe.config import Config
+        from omniscribe.transcription.factory import create_live_transcriber
+        from omniscribe.transcription.transcript_metadata import get_git_sha
 
         transcript_path = output.with_suffix(".txt")
         on_output = tui_instance.add_transcript if tui_instance else None

@@ -7,16 +7,9 @@ import datetime as dt
 import sys
 from pathlib import Path
 
-import numpy as np
-import soundfile as sf
-
 from omniscribe.config import Config, load_config, save_default_config
-from omniscribe.diarization import check_pyannote_available, transcribe_with_diarization
-from omniscribe.transcription.factory import create_live_transcriber
 
 from .devices import list_devices, resolve_mic_device, resolve_system_device
-from .input_check import check_inputs
-from .session import record
 
 CLI_DOC = """Meeting recorder: captures system audio (what you hear) and microphone
 simultaneously, then writes a mixed WAV file (and optionally separate tracks).
@@ -51,6 +44,7 @@ def transcribe_file(
     print(f"Transcribing: {input_path}")
 
     if diarize:
+        from omniscribe.diarization import check_pyannote_available, transcribe_with_diarization
         if not check_pyannote_available():
             print(
                 "Error: pyannote.audio is required for diarization.\n"
@@ -59,6 +53,7 @@ def transcribe_file(
             )
             return 1
 
+        from omniscribe.transcription.factory import create_live_transcriber
         output_path = input_path.with_suffix(".diarized.txt")
         transcriber = create_live_transcriber(
             output_path,
@@ -75,6 +70,7 @@ def transcribe_file(
         )
         return 0
 
+    import soundfile as sf
     audio, sr = sf.read(str(input_path))
     if audio.ndim == 1:
         audio = audio[:, None]
@@ -93,6 +89,8 @@ def transcribe_file(
     else:
         channels_to_process = [(None, config.mic_label)]
 
+    import numpy as np
+    from omniscribe.transcription.factory import create_live_transcriber
     output_path = input_path.with_suffix(".txt")
     transcriber = create_live_transcriber(
         output_path,
@@ -220,6 +218,7 @@ def main() -> int:
             return v
 
     if args.check:
+        from .input_check import check_inputs
         mic_dev = resolve_mic_device(_coerce(config.mic))
         sys_dev = resolve_system_device(_coerce(config.system))
         check_inputs(mic_dev, sys_dev, duration=config.check_seconds)
@@ -234,6 +233,7 @@ def main() -> int:
             num_speakers=args.num_speakers,
         )
 
+    from .session import record
     mic_dev = resolve_mic_device(_coerce(config.mic))
     sys_dev = resolve_system_device(_coerce(config.system))
     output = Path(config.output) if config.output else args.output
