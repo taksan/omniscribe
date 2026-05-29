@@ -78,6 +78,7 @@ class LiveTranscriber:
         self._worker: Optional[threading.Thread] = None
         self._writer_lock = threading.Lock()
         self._start_wallclock: Optional[dt.datetime] = None
+        self._audio_start: Optional[dt.datetime] = None  # set on first audio frame
         self._file = None
         self._filtered_file = None
         self._gpu_detected = False
@@ -170,6 +171,8 @@ class LiveTranscriber:
         samples = to_mono16k(block, self.src_sr)
         if samples.size == 0:
             return
+        if self._audio_start is None:
+            self._audio_start = dt.datetime.now()
         with self._buffers_lock:
             buf = self._buffers.get(label)
             if buf is None:
@@ -303,7 +306,7 @@ class LiveTranscriber:
         print(f"[Filtered ({reason}): {text[:50]}...]")
         # Calculate timestamp
         ts = dt.datetime.now()
-        rel = ts - (self._start_wallclock or ts)
+        rel = ts - (self._audio_start or ts)
         secs = int(rel.total_seconds())
         hh, rem = divmod(secs, 3600)
         mm, ss = divmod(rem, 60)
@@ -311,7 +314,7 @@ class LiveTranscriber:
         self._write_filtered_line(line)
 
     def _write_segments(self, label: str, segments, chunk_start_ts: dt.datetime) -> None:
-        chunk_start_rel = chunk_start_ts - (self._start_wallclock or chunk_start_ts)
+        chunk_start_rel = chunk_start_ts - (self._audio_start or chunk_start_ts)
         chunk_start_secs = int(chunk_start_rel.total_seconds())
         for seg in segments:
             seg_timestamp = chunk_start_secs + int(seg.start)
@@ -325,7 +328,7 @@ class LiveTranscriber:
     def _write_chunk(self, label: str, segments) -> None:
         text = " ".join(seg.text.strip() for seg in segments)
         ts = dt.datetime.now()
-        rel = ts - (self._start_wallclock or ts)
+        rel = ts - (self._audio_start or ts)
         secs = int(rel.total_seconds())
         hh, rem = divmod(secs, 3600)
         mm, ss = divmod(rem, 60)

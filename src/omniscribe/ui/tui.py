@@ -117,29 +117,45 @@ class OmniScribeTUI:
     
     def _make_transcription_panel(self) -> Panel:
         """Create the transcription settings panel (top middle-left)."""
-        gpu_status_text = "Yes" if self.state.gpu_detected else "No"
-        gpu_status_color = "green" if self.state.gpu_detected else "red"
+        loading = bool(self.state.initialization_status)
         lang = self.state.language or "Auto"
         prompt = self.state.initial_prompt or "None"
 
-        # Build GPU detected line with proper color styling
-        gpu_line = Text.assemble(
-            "GPU detected: ",
-            Text(gpu_status_text, style=gpu_status_color)
-        )
+        # GPU line: show "Initializing..." until model is loaded (gpu_detected isn't known yet)
+        if loading:
+            gpu_line = Text.assemble(
+                "GPU detected: ",
+                Text(self.state.initialization_status, style="bold yellow")
+            )
+        else:
+            gpu_status_text = "Yes" if self.state.gpu_detected else "No"
+            gpu_status_color = "green" if self.state.gpu_detected else "red"
+            gpu_line = Text.assemble(
+                "GPU detected: ",
+                Text(gpu_status_text, style=gpu_status_color)
+            )
 
-        # Build filter status lines
-        halluc_status = Text.assemble(
-            "Hallucination Filter: ",
-            Text("enabled", style="green") if self.state.hallucination_filter_enabled else Text("disabled", style="dim")
-        )
-        rep_status = Text.assemble(
-            "Repetition Filter: ",
-            Text("enabled", style="green") if self.state.repetition_filter_enabled else Text("disabled", style="dim")
-        )
+        # Filter status lines: show "Initializing..." until config is applied
+        if loading:
+            halluc_status = Text.assemble(
+                "Hallucination Filter: ",
+                Text(self.state.initialization_status, style="bold yellow")
+            )
+            rep_status = Text.assemble(
+                "Repetition Filter: ",
+                Text(self.state.initialization_status, style="bold yellow")
+            )
+        else:
+            halluc_status = Text.assemble(
+                "Hallucination Filter: ",
+                Text("enabled", style="green") if self.state.hallucination_filter_enabled else Text("disabled", style="dim")
+            )
+            rep_status = Text.assemble(
+                "Repetition Filter: ",
+                Text("enabled", style="green") if self.state.repetition_filter_enabled else Text("disabled", style="dim")
+            )
 
         content = Group(
-            Text(self.state.initialization_status, style="yellow dim") if self.state.initialization_status else Text(""),
             Text(f"Whisper model: {self.state.whisper_model}", style="cyan"),
             Text(f"Device: {self.state.whisper_device}", style="cyan"),
             Text(f"Language: {lang}", style="cyan"),
@@ -240,7 +256,10 @@ class OmniScribeTUI:
     def _make_transcript_panel(self) -> Panel:
         """Create the live transcription panel (bottom)."""
         if not self.state.transcript_lines:
-            content = Text("Waiting for transcription...", style="dim italic")
+            if self.state.initialization_status:
+                content = Text(self.state.initialization_status, style="bold yellow")
+            else:
+                content = Text("Waiting for transcription...", style="dim italic")
         else:
             lines = list(self.state.transcript_lines)[-20:]  # Show last 20 lines
             content = Group(*[Text(line) for line in lines])
@@ -434,10 +453,10 @@ class OmniScribeTUI:
             self.state.add_transcript(line)
     
     def set_devices(
-        self, 
-        mic: str, 
-        system: str, 
-        mic_gain: float = 1.0, 
+        self,
+        mic: str,
+        system: str,
+        mic_gain: float = 1.0,
         sys_gain: float = 1.0
     ) -> None:
         """Set device information."""
