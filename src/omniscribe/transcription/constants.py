@@ -47,15 +47,6 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "be right back",
     "продолжение следует",  # Russian "to be continued"
 
-    # Recording/platform artifacts
-    "this meeting is being recorded",
-    "esta reunião está sendo gravada",
-    "recording has started",
-    "recording has stopped",
-    "marketing has stopped",
-    "has left the meeting",
-    "joined the meeting",
-
     # Whisper language detection tags (emitted on near-silence)
     "aplicações em português",
     "aplicação em português",
