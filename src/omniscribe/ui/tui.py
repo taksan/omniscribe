@@ -62,16 +62,17 @@ class TUIState:
     # Audio levels (in dBFS)
     mic_level: float = -60.0
     sys_level: float = -60.0
-    
+
     # Messages
     messages: deque[str] = field(default_factory=lambda: deque(maxlen=50))
-    
+
     # Transcription lines
     transcript_lines: deque[str] = field(default_factory=lambda: deque(maxlen=100))
-    
+
     # Status
     recording: bool = False
     transcribing: bool = False
+    initialization_status: str = "Initializing..."  # Shows what's being set up
     
     # Mute states (for visual indication only - audio is still recorded)
     mic_muted: bool = False
@@ -138,6 +139,7 @@ class OmniScribeTUI:
         )
 
         content = Group(
+            Text(self.state.initialization_status, style="yellow dim") if self.state.initialization_status else Text(""),
             Text(f"Whisper model: {self.state.whisper_model}", style="cyan"),
             Text(f"Device: {self.state.whisper_device}", style="cyan"),
             Text(f"Language: {lang}", style="cyan"),

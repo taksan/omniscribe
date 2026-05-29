@@ -209,6 +209,9 @@ def record(
             max_no_speech_prob=max_no_speech_prob,
             enable_repetition_filter=enable_repetition_filter,
         )
+        if tui_instance:
+            tui_instance.state.initialization_status = "Loading Whisper model..."
+
         transcriber = create_live_transcriber(
             transcript_path,
             config=whisper_config,
@@ -216,7 +219,9 @@ def record(
             on_output=on_output,
         )
         transcriber.start()
+
         if tui_instance:
+            tui_instance.state.initialization_status = "Configuring transcription settings..."
             # Update TUI with actual recording configuration
             tui_instance.state.gpu_detected = transcriber.gpu_detected
             tui_instance.state.whisper_model = whisper_config.whisper_model
@@ -229,6 +234,7 @@ def record(
             tui_instance.state.hallucination_filter_enabled = whisper_config.enable_hallucination_filter
             tui_instance.state.repetition_filter_enabled = enable_repetition_filter
             tui_instance.state.version = get_git_sha()
+            tui_instance.state.initialization_status = ""  # Clear when done
         else:
             print(f"Transcript: {transcript_path}")
 
