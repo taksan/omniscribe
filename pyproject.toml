@@ -54,6 +54,7 @@ dev = [
 
 [project.scripts]
 omniscribe = "omniscribe.recording.cli:main"
+omniscribe-analyze = "omniscribe.analysis.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/user/local-transcriber"
