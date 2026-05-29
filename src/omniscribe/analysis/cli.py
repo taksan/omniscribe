@@ -117,7 +117,7 @@ def plot_analysis(
         console.print("[red]matplotlib required for plots: pip install matplotlib[/red]")
         return
 
-    from .analyzer import energy_curve, _suspicion_color
+    from .analyzer import energy_curve
 
     fig, axes = plt.subplots(
         len(channels), 1,
