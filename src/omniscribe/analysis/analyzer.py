@@ -172,8 +172,8 @@ def analyze(
 
         if seg.word_count > 0 and wps > 4.0:
             score += 0.3
-            flags.append(f"too dense: {wps:.1f} words/sec (max ~2.5 for normal speech)")
-        elif seg.word_count > 0 and wps > 3.0:
+            flags.append(f"too dense: {wps:.1f} words/sec (max ~3.5 for fast speech)")
+        elif seg.word_count > 0 and wps > 3.5:
             score += 0.15
             flags.append(f"slightly dense: {wps:.1f} words/sec")
 
@@ -182,6 +182,25 @@ def analyze(
             flags.append(
                 f"duration mismatch: {seg.expected_speech_secs:.1f}s expected, "
                 f"{audio_duration:.1f}s window"
+            )
+
+        # Length check: real audio present but text is suspiciously sparse.
+        # Catches hallucinations like "Legenda por Sônia Ruberti" over 13s of audio.
+        # Cap window at 25s — beyond that, silence between speakers is expected.
+        # Skip truncated lines (mid-sentence) and very short utterances (≤3 words).
+        length_check_window = min(audio_duration, 25.0)
+        length_wps = seg.word_count / max(length_check_window, 0.1)
+        is_truncated = seg.text.rstrip().endswith("...")
+        if (length_check_window >= 5.0
+                and rdb > silence_threshold_db
+                and sil < 0.5
+                and length_wps < 0.5
+                and seg.word_count >= 4
+                and not is_truncated):
+            score += 0.4
+            flags.append(
+                f"sparse text for active audio: {seg.word_count} words over "
+                f"{length_check_window:.0f}s ({length_wps:.2f} w/s)"
             )
 
         score = min(score, 1.0)
