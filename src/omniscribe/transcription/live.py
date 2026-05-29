@@ -358,6 +358,7 @@ class LiveTranscriber:
             self._recent_outputs[label] = self._recent_outputs[label][-5:]
 
     def _write_line(self, line: str) -> None:
+        """Write line to file and TUI output."""
         with self._writer_lock:
             if self._file is not None:
                 self._file.write(line + "\n")
@@ -365,67 +366,82 @@ class LiveTranscriber:
             if self._on_output is not None:
                 self._on_output(line)
 
+    def _write_file_only(self, line: str) -> None:
+        """Write line to file only (metadata, headers, etc.)."""
+        with self._writer_lock:
+            if self._file is not None:
+                self._file.write(line + "\n")
+                self._file.flush()
+
     def _write_filtered_line(self, line: str) -> None:
+        """Write line to filtered file (includes timestamp and reason)."""
+        with self._writer_lock:
+            if self._filtered_file is not None:
+                self._filtered_file.write(line + "\n")
+                self._filtered_file.flush()
+
+    def _write_filtered_file_only(self, line: str) -> None:
+        """Write line to filtered file only (metadata, headers, etc.)."""
         with self._writer_lock:
             if self._filtered_file is not None:
                 self._filtered_file.write(line + "\n")
                 self._filtered_file.flush()
 
     def _write_header(self) -> None:
-        """Write configuration header to main transcript file."""
+        """Write configuration header to main transcript file (metadata only, not displayed in TUI)."""
         git_sha = get_git_sha()
-        self._write_line(f"# OmniScribe Transcript")
-        self._write_line(f"# Started: {self._start_wallclock:%Y-%m-%d %H:%M:%S}")
-        self._write_line(f"# Version: {git_sha}")
-        self._write_line("#")
-        self._write_line("# === Whisper Configuration ===")
-        self._write_line(f"# Model: {self.model_name}")
-        self._write_line(f"# Device: {self.device} (GPU: {'Yes' if self._gpu_detected else 'No'})")
-        self._write_line(f"# Compute Type: {self.compute_type}")
-        self._write_line(f"# Language: {self.language or 'auto-detect'}")
-        self._write_line("#")
-        self._write_line("# === Audio Configuration ===")
-        self._write_line(f"# Sample Rate: {self.src_sr} Hz")
-        self._write_line(f"# Chunk Duration: {self.chunk_samples / WHISPER_SR:.1f}s")
-        self._write_line(f"# VAD Min Silence: {self.vad_min_silence_ms}ms")
-        self._write_line(f"# Silence Threshold: {self.silence_threshold_db} dB")
-        self._write_line("#")
-        self._write_line("# === Filtering & Quality ===")
-        self._write_line(f"# Hallucination Filter: {'enabled' if self._hallucination_filter else 'disabled'}")
-        self._write_line(f"# Repetition Filter: {'enabled' if self.enable_repetition_filter else 'disabled'}")
-        self._write_line(f"# Min Logprob: {self.min_logprob}")
-        self._write_line(f"# Max No-Speech Prob: {self.max_no_speech_prob}")
-        self._write_line(f"# Per-Segment Output: {self.per_segment_output}")
-        self._write_line("#")
+        self._write_file_only(f"# OmniScribe Transcript")
+        self._write_file_only(f"# Started: {self._start_wallclock:%Y-%m-%d %H:%M:%S}")
+        self._write_file_only(f"# Version: {git_sha}")
+        self._write_file_only("#")
+        self._write_file_only("# === Whisper Configuration ===")
+        self._write_file_only(f"# Model: {self.model_name}")
+        self._write_file_only(f"# Device: {self.device} (GPU: {'Yes' if self._gpu_detected else 'No'})")
+        self._write_file_only(f"# Compute Type: {self.compute_type}")
+        self._write_file_only(f"# Language: {self.language or 'auto-detect'}")
+        self._write_file_only("#")
+        self._write_file_only("# === Audio Configuration ===")
+        self._write_file_only(f"# Sample Rate: {self.src_sr} Hz")
+        self._write_file_only(f"# Chunk Duration: {self.chunk_samples / WHISPER_SR:.1f}s")
+        self._write_file_only(f"# VAD Min Silence: {self.vad_min_silence_ms}ms")
+        self._write_file_only(f"# Silence Threshold: {self.silence_threshold_db} dB")
+        self._write_file_only("#")
+        self._write_file_only("# === Filtering & Quality ===")
+        self._write_file_only(f"# Hallucination Filter: {'enabled' if self._hallucination_filter else 'disabled'}")
+        self._write_file_only(f"# Repetition Filter: {'enabled' if self.enable_repetition_filter else 'disabled'}")
+        self._write_file_only(f"# Min Logprob: {self.min_logprob}")
+        self._write_file_only(f"# Max No-Speech Prob: {self.max_no_speech_prob}")
+        self._write_file_only(f"# Per-Segment Output: {self.per_segment_output}")
+        self._write_file_only("#")
 
     def _write_filtered_header(self) -> None:
-        """Write configuration header to filtered transcript file."""
+        """Write configuration header to filtered transcript file (metadata only)."""
         git_sha = get_git_sha()
-        self._write_filtered_line(f"# OmniScribe Filtered Content")
-        self._write_filtered_line(f"# Started: {self._start_wallclock:%Y-%m-%d %H:%M:%S}")
-        self._write_filtered_line(f"# Version: {git_sha}")
-        self._write_filtered_line("#")
-        self._write_filtered_line("# === Whisper Configuration ===")
-        self._write_filtered_line(f"# Model: {self.model_name}")
-        self._write_filtered_line(f"# Device: {self.device} (GPU: {'Yes' if self._gpu_detected else 'No'})")
-        self._write_filtered_line(f"# Compute Type: {self.compute_type}")
-        self._write_filtered_line(f"# Language: {self.language or 'auto-detect'}")
-        self._write_filtered_line("#")
-        self._write_filtered_line("# === Audio Configuration ===")
-        self._write_filtered_line(f"# Sample Rate: {self.src_sr} Hz")
-        self._write_filtered_line(f"# Chunk Duration: {self.chunk_samples / WHISPER_SR:.1f}s")
-        self._write_filtered_line(f"# VAD Min Silence: {self.vad_min_silence_ms}ms")
-        self._write_filtered_line(f"# Silence Threshold: {self.silence_threshold_db} dB")
-        self._write_filtered_line("#")
-        self._write_filtered_line("# === Filtering & Quality ===")
-        self._write_filtered_line(f"# Hallucination Filter: {'enabled' if self._hallucination_filter else 'disabled'}")
-        self._write_filtered_line(f"# Repetition Filter: {'enabled' if self.enable_repetition_filter else 'disabled'}")
-        self._write_filtered_line(f"# Min Logprob: {self.min_logprob}")
-        self._write_filtered_line(f"# Max No-Speech Prob: {self.max_no_speech_prob}")
-        self._write_filtered_line("#")
-        self._write_filtered_line("# === Hallucination Filter Thresholds ===")
+        self._write_filtered_file_only(f"# OmniScribe Filtered Content")
+        self._write_filtered_file_only(f"# Started: {self._start_wallclock:%Y-%m-%d %H:%M:%S}")
+        self._write_filtered_file_only(f"# Version: {git_sha}")
+        self._write_filtered_file_only("#")
+        self._write_filtered_file_only("# === Whisper Configuration ===")
+        self._write_filtered_file_only(f"# Model: {self.model_name}")
+        self._write_filtered_file_only(f"# Device: {self.device} (GPU: {'Yes' if self._gpu_detected else 'No'})")
+        self._write_filtered_file_only(f"# Compute Type: {self.compute_type}")
+        self._write_filtered_file_only(f"# Language: {self.language or 'auto-detect'}")
+        self._write_filtered_file_only("#")
+        self._write_filtered_file_only("# === Audio Configuration ===")
+        self._write_filtered_file_only(f"# Sample Rate: {self.src_sr} Hz")
+        self._write_filtered_file_only(f"# Chunk Duration: {self.chunk_samples / WHISPER_SR:.1f}s")
+        self._write_filtered_file_only(f"# VAD Min Silence: {self.vad_min_silence_ms}ms")
+        self._write_filtered_file_only(f"# Silence Threshold: {self.silence_threshold_db} dB")
+        self._write_filtered_file_only("#")
+        self._write_filtered_file_only("# === Filtering & Quality ===")
+        self._write_filtered_file_only(f"# Hallucination Filter: {'enabled' if self._hallucination_filter else 'disabled'}")
+        self._write_filtered_file_only(f"# Repetition Filter: {'enabled' if self.enable_repetition_filter else 'disabled'}")
+        self._write_filtered_file_only(f"# Min Logprob: {self.min_logprob}")
+        self._write_filtered_file_only(f"# Max No-Speech Prob: {self.max_no_speech_prob}")
+        self._write_filtered_file_only("#")
+        self._write_filtered_file_only("# === Hallucination Filter Thresholds ===")
         if self._hallucination_filter:
-            self._write_filtered_line(f"# Duration Mismatch Threshold: {self._hallucination_filter.DURATION_MISMATCH_THRESHOLD}x")
-            self._write_filtered_line(f"# Words Per Second: {self._hallucination_filter.WORDS_PER_SECOND}")
-            self._write_filtered_line(f"# Low Energy Threshold: -38.0 dB")
-        self._write_filtered_line("#")
+            self._write_filtered_file_only(f"# Duration Mismatch Threshold: {self._hallucination_filter.DURATION_MISMATCH_THRESHOLD}x")
+            self._write_filtered_file_only(f"# Words Per Second: {self._hallucination_filter.WORDS_PER_SECOND}")
+            self._write_filtered_file_only(f"# Low Energy Threshold: -38.0 dB")
+        self._write_filtered_file_only("#")
