@@ -187,9 +187,9 @@ class LiveTranscriber:
         with self._buffers_lock:
             buffers = list(self._buffers.values())
         for buf in buffers:
-            tail = buf.drain()
+            tail, start_sample = buf.drain()
             if tail.size >= self.min_chunk_samples:
-                self._transcribe(buf.label, tail)
+                self._transcribe(buf.label, tail, start_sample)
         if self._file is not None:
             self._file.close()
             self._file = None
@@ -198,6 +198,7 @@ class LiveTranscriber:
             self._filtered_file = None
         if self._hallucination_filter:
             self._hallucination_filter.filter_transcript_file(self.output_path)
+        self._sort_transcript_file(self.output_path)
 
     # --- Private ---
 
@@ -207,14 +208,15 @@ class LiveTranscriber:
             with self._buffers_lock:
                 buffers = list(self._buffers.values())
             for buf in buffers:
-                chunk = buf.take(self.chunk_samples)
-                if chunk is not None:
-                    self._transcribe(buf.label, chunk)
+                result = buf.take(self.chunk_samples)
+                if result is not None:
+                    chunk, start_sample = result
+                    self._transcribe(buf.label, chunk, start_sample)
                     did_work = True
             if not did_work:
                 self._stop.wait(0.3)
 
-    def _transcribe(self, label: str, audio: np.ndarray) -> None:
+    def _transcribe(self, label: str, audio: np.ndarray, start_sample: int = 0) -> None:
         assert self._model is not None
 
         if self._is_silent(audio):
@@ -223,7 +225,9 @@ class LiveTranscriber:
         prior = self._prior_text.get(label, "")
         prompt_parts = [p for p in (self.initial_prompt, prior) if p]
         prompt = " ".join(prompt_parts).strip() or None
-        chunk_start_ts = dt.datetime.now()
+        # Compute chunk start from sample position — accurate regardless of processing lag
+        from .constants import WHISPER_SR
+        chunk_start_secs = start_sample / WHISPER_SR
 
         try:
             segments, _info = self._model.transcribe(
@@ -270,7 +274,7 @@ class LiveTranscriber:
             self._prior_text[label] = combined[-400:]
 
         if self.per_segment_output:
-            self._write_segments(label, valid_segments, chunk_start_ts)
+            self._write_segments(label, valid_segments, chunk_start_secs)
         else:
             self._write_chunk(label, valid_segments)
 
@@ -313,11 +317,30 @@ class LiveTranscriber:
         line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: [{reason}] {text}"
         self._write_filtered_line(line)
 
-    def _write_segments(self, label: str, segments, chunk_start_ts: dt.datetime) -> None:
-        chunk_start_rel = chunk_start_ts - (self._audio_start or chunk_start_ts)
-        chunk_start_secs = int(chunk_start_rel.total_seconds())
+    @staticmethod
+    def _sort_transcript_file(path: Path) -> None:
+        """Sort transcript lines by timestamp, keeping header comments at top."""
+        if not path.exists():
+            return
+        with open(path, encoding="utf-8") as f:
+            lines = f.readlines()
+        # Split at first non-header line
+        split = 0
+        for i, line in enumerate(lines):
+            if line.startswith("#") or not line.strip():
+                split = i + 1
+            else:
+                break
+        headers = lines[:split]
+        content = sorted(line for line in lines[split:] if line.strip())
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(headers)
+            f.writelines(content)
+            f.write("\n")
+
+    def _write_segments(self, label: str, segments, chunk_start_secs: float) -> None:
         for seg in segments:
-            seg_timestamp = chunk_start_secs + int(seg.start)
+            seg_timestamp = int(chunk_start_secs) + int(seg.start)
             hh, rem = divmod(seg_timestamp, 3600)
             mm, ss = divmod(rem, 60)
             line = f"[{hh:02d}:{mm:02d}:{ss:02d}] {label}: {seg.text.strip()}"

@@ -46,51 +46,60 @@ class TestSourceBuffer:
         assert buf.buffer.size == 2
 
     def test_take_success(self):
-        """Test successful take removes data from buffer."""
+        """Test successful take removes data from buffer and returns start sample."""
         buf = _SourceBuffer("test")
         buf.append(np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32))
-        
+
         result = buf.take(3)
-        
+
         assert result is not None
-        assert result.size == 3
-        assert np.allclose(result, [0.1, 0.2, 0.3])
+        chunk, start = result
+        assert chunk.size == 3
+        assert np.allclose(chunk, [0.1, 0.2, 0.3])
+        assert start == 0
         # Remaining in buffer
         assert buf.buffer.size == 2
         assert np.allclose(buf.buffer, [0.4, 0.5])
+        # Second take advances the start sample counter
+        result2 = buf.take(2)
+        assert result2 is not None
+        _, start2 = result2
+        assert start2 == 3
 
     def test_take_exact_size(self):
         """Test take when buffer has exactly the requested size."""
         buf = _SourceBuffer("test")
         buf.append(np.array([0.1, 0.2, 0.3], dtype=np.float32))
-        
+
         result = buf.take(3)
-        
+
         assert result is not None
-        assert result.size == 3
-        assert np.allclose(result, [0.1, 0.2, 0.3])
-        # Buffer should be empty but still exist
+        chunk, start = result
+        assert chunk.size == 3
+        assert np.allclose(chunk, [0.1, 0.2, 0.3])
+        assert start == 0
         assert buf.buffer.size == 0
 
     def test_drain(self):
-        """Test drain returns all data and clears buffer."""
+        """Test drain returns all data, start sample, and clears buffer."""
         buf = _SourceBuffer("test")
         buf.append(np.array([0.1, 0.2, 0.3], dtype=np.float32))
-        
-        result = buf.drain()
-        
-        assert result.size == 3
-        assert np.allclose(result, [0.1, 0.2, 0.3])
-        # Buffer should be empty
+
+        chunk, start = buf.drain()
+
+        assert chunk.size == 3
+        assert np.allclose(chunk, [0.1, 0.2, 0.3])
+        assert start == 0
         assert buf.buffer.size == 0
 
     def test_drain_empty(self):
         """Test drain on empty buffer."""
         buf = _SourceBuffer("test")
-        
-        result = buf.drain()
-        
-        assert result.size == 0
+
+        chunk, start = buf.drain()
+
+        assert chunk.size == 0
+        assert start == 0
         assert buf.buffer.size == 0
 
     def test_thread_safety(self):

@@ -9,6 +9,7 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "muito obrigado, até a próxima",
     "obrigado, até a próxima",
     "thanks for watching",
+    "thank you for watching",
     "subscribe to the channel",
     "like and subscribe",
     "click the bell",
@@ -19,6 +20,8 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "legendas disponíveis",
     "acesse o nosso site",
     "www.opusdei.pt",
+    "transcription by castingwords",
+    "subtitles by castingwords",
 
     # Subtitle/captions artifacts
     "webvtt",
@@ -35,7 +38,12 @@ DEFAULT_HALLUCINATION_PATTERNS = [
     "[background noise]",
     "[music]",
 
-    # Bye phrases (often hallucinated)
+    # Closing phrases (often hallucinated on silence)
     "tchau, tchau",
     "tchau, tchau.",
+    "bye-bye",
+    "bye bye",
+    "see you next time",
+    "be right back",
+    "продолжение следует",  # Russian "to be continued"
 ]
