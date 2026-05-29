@@ -101,6 +101,7 @@ class OmniScribeTUI:
         self._live: Live | None = None
         self._stop_event = threading.Event()
         self._update_thread: threading.Thread | None = None
+        self._on_stop: Callable[[], None] | None = None
         self._input_thread: threading.Thread | None = None
         
     def _make_devices_panel(self) -> Panel:
@@ -421,6 +422,8 @@ class OmniScribeTUI:
                         self.toggle_sys_mute()
                     elif char in ('q', '\r', '\n'):
                         self.state.add_message("Stop requested...")
+                        if self._on_stop:
+                            self._on_stop()
                         break
         finally:
             # Restore terminal settings
@@ -459,6 +462,10 @@ class OmniScribeTUI:
         with self._state_lock:
             self.state.add_transcript(line)
     
+    def set_stop_callback(self, callback: Callable[[], None]) -> None:
+        """Register a callback to invoke when the user requests stop (q/Enter)."""
+        self._on_stop = callback
+
     def set_devices(
         self,
         mic: str,

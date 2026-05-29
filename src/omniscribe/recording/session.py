@@ -135,6 +135,8 @@ def record(
     print()
 
     stop = threading.Event()
+    if tui_instance:
+        tui_instance.set_stop_callback(stop.set)
     interrupt_count = {"n": 0}
 
     def _on_signal(signum, _frame):
