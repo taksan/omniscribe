@@ -13,6 +13,7 @@ import numpy as np
 import soundfile as sf
 
 from omniscribe.transcription.factory import create_live_transcriber
+from omniscribe.transcription.transcript_metadata import get_git_sha
 from omniscribe.ui import create_tui
 
 from .alerts import play_alert_tone
@@ -216,7 +217,18 @@ def record(
         )
         transcriber.start()
         if tui_instance:
+            # Update TUI with actual recording configuration
             tui_instance.state.gpu_detected = transcriber.gpu_detected
+            tui_instance.state.whisper_model = whisper_config.whisper_model
+            tui_instance.state.whisper_device = whisper_config.whisper_device
+            tui_instance.state.language = whisper_config.language
+            tui_instance.state.sample_rate = SAMPLE_RATE
+            tui_instance.state.chunk_duration = whisper_config.chunk_seconds
+            tui_instance.state.vad_min_silence_ms = whisper_config.vad_min_silence_ms
+            tui_instance.state.silence_threshold_db = silence_threshold_db
+            tui_instance.state.hallucination_filter_enabled = whisper_config.enable_hallucination_filter
+            tui_instance.state.repetition_filter_enabled = enable_repetition_filter
+            tui_instance.state.version = get_git_sha()
         else:
             print(f"Transcript: {transcript_path}")
 
