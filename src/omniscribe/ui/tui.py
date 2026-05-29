@@ -45,7 +45,20 @@ class TUIState:
     language: str | None = None
     initial_prompt: str | None = None
     gpu_detected: bool = False
-    
+
+    # Audio configuration
+    sample_rate: int = 48000
+    chunk_duration: float = 6.0
+    vad_min_silence_ms: int = 500
+    silence_threshold_db: float = -45.0
+
+    # Filtering settings
+    hallucination_filter_enabled: bool = True
+    repetition_filter_enabled: bool = True
+
+    # Version info
+    version: str = "unknown"
+
     # Audio levels (in dBFS)
     mic_level: float = -60.0
     sys_level: float = -60.0
@@ -90,8 +103,14 @@ class OmniScribeTUI:
         """Create the devices panel (top left)."""
         content = Group(
             Text(f"Audio: {self.state.system_device}", style="cyan"),
+            Text(f"Stereo: {self.state.system_device}", style="cyan"),
             Text(f"Mic: {self.state.mic_device}", style="cyan"),
             Text(f"Gain: {self.state.mic_gain:.1f}x / {self.state.sys_gain:.1f}x", style="cyan"),
+            Text("", style="dim"),  # Spacer
+            Text(f"Sample Rate: {self.state.sample_rate:,} Hz", style="yellow"),
+            Text(f"Chunk Duration: {self.state.chunk_duration:.1f}s", style="yellow"),
+            Text(f"VAD Min Silence: {self.state.vad_min_silence_ms}ms", style="yellow"),
+            Text(f"Silence Threshold: {self.state.silence_threshold_db:.1f} dB", style="yellow"),
         )
         return Panel(content, title="[b blue]Devices", border_style="blue")
     
@@ -108,12 +127,25 @@ class OmniScribeTUI:
             Text(gpu_status_text, style=gpu_status_color)
         )
 
+        # Build filter status lines
+        halluc_status = Text.assemble(
+            "Hallucination Filter: ",
+            Text("enabled", style="green") if self.state.hallucination_filter_enabled else Text("disabled", style="dim")
+        )
+        rep_status = Text.assemble(
+            "Repetition Filter: ",
+            Text("enabled", style="green") if self.state.repetition_filter_enabled else Text("disabled", style="dim")
+        )
+
         content = Group(
             Text(f"Whisper model: {self.state.whisper_model}", style="cyan"),
             Text(f"Device: {self.state.whisper_device}", style="cyan"),
             Text(f"Language: {lang}", style="cyan"),
             Text(f"Initial prompt: {prompt[:30]}{'...' if len(str(prompt)) > 30 else ''}", style="cyan"),
             gpu_line,
+            Text("", style="dim"),  # Spacer
+            halluc_status,
+            rep_status,
         )
         return Panel(content, title="[b blue]Transcription", border_style="blue")
     
@@ -251,11 +283,13 @@ class OmniScribeTUI:
                 Layout(name="footer", size=3),
             )
             
-            # Header with title
-            title = Align.center(
+            # Header with title and version
+            title_text = Text.assemble(
                 Text("OmniScribe", style="bold blue"),
-                vertical="middle"
+                " ",
+                Text(f"v{self.state.version}", style="dim yellow")
             )
+            title = Align.center(title_text, vertical="middle")
             layout["header"].update(
                 Panel(title, border_style="blue")
             )
