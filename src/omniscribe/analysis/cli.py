@@ -74,21 +74,15 @@ def print_report(headers: dict, analyses: list, threshold_db: float) -> None:
         )
         console.print()
 
-    # Suspicious segments detail
-    console.print(f"[bold]SUSPICIOUS SEGMENTS[/bold]  ({len(suspicious)} of {total})")
-    console.print("─" * 60)
-
-    for a in sorted(suspicious, key=lambda x: -x.suspicion_score):
+    def _print_segment(a: "SegmentAnalysis") -> None:
         color = _suspicion_color(a.suspicion_score)
         seg = a.segment
         score_pct = int(a.suspicion_score * 100)
-
         label_ts = f"[{_format_ts(seg.timestamp_secs)}] {seg.label}"
         console.print(
             f"[{color}]●[/{color}] [bold]{label_ts}[/bold]  "
             f"[dim]score {score_pct}%[/dim]"
         )
-        # Truncate long text
         text_display = seg.text if len(seg.text) <= 80 else seg.text[:77] + "..."
         console.print(f"  [italic]{text_display}[/italic]")
         console.print(
@@ -102,6 +96,22 @@ def print_report(headers: dict, analyses: list, threshold_db: float) -> None:
         for flag in a.flags:
             console.print(f"  [dim]→ {flag}[/dim]")
         console.print()
+
+    by_score = sorted(suspicious, key=lambda x: -x.suspicion_score)
+    likely = [a for a in by_score if a.suspicion_score >= 0.6]
+    borderline = [a for a in by_score if a.suspicion_score < 0.6]
+
+    if likely:
+        console.print(f"[bold red]LIKELY HALLUCINATIONS[/bold red]  ({len(likely)} of {total})")
+        console.print("─" * 60)
+        for a in likely:
+            _print_segment(a)
+
+    if borderline:
+        console.print(f"[bold yellow]SUSPICIOUS[/bold yellow]  ({len(borderline)} of {total})")
+        console.print("─" * 60)
+        for a in borderline:
+            _print_segment(a)
 
 
 def plot_analysis(
