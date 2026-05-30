@@ -115,12 +115,14 @@ def analyze(
     silence_threshold_db: float = -45.0,
     mic_label: str = "You",
     system_label: str = "Them",
-) -> tuple[dict, list[SegmentAnalysis], dict[str, np.ndarray], int]:
+) -> tuple[dict, list[SegmentAnalysis], dict[str, np.ndarray], int, float | None]:
     """
-    Returns (headers, analyses, channel_audio_dict, sample_rate).
+    Returns (headers, analyses, channel_audio_dict, sample_rate, drift_scale).
+    drift_scale is non-None when timestamps were wall-clock inflated (old recordings).
     channel_audio_dict keys: mic_label, system_label.
     """
     audio, sr = sf.read(str(wav_path), dtype="float32")
+    audio_duration = audio.shape[0] / sr
 
     # Channel assignment (split-channel layout: ch0=mic, ch1=system)
     if audio.ndim == 2 and audio.shape[1] >= 2:
@@ -130,6 +132,20 @@ def analyze(
         channels = {mic_label: mono, system_label: mono}
 
     headers, segments = parse_transcript(transcript_path)
+
+    # Detect and correct timestamp drift from old wall-clock approach.
+    # When GPU transcription time was included in timestamps, the last
+    # transcript timestamp overshoots the actual audio duration.
+    # Correct by scaling all timestamps linearly to match the WAV length.
+    drift_scale: float | None = None
+    if segments:
+        transcript_span = segments[-1].timestamp_secs
+        if transcript_span > 0:
+            ratio = transcript_span / audio_duration
+            if ratio > 1.05:  # more than 5% overshoot → old recording
+                drift_scale = audio_duration / transcript_span
+                for seg in segments:
+                    seg.timestamp_secs = int(seg.timestamp_secs * drift_scale)
 
     # Build per-label index for same-channel next-timestamp lookup
     label_timestamps: dict[str, list[int]] = {}
@@ -247,4 +263,4 @@ def analyze(
             flags=flags,
         ))
 
-    return headers, analyses, channels, sr, skipped_beyond_audio
+    return headers, analyses, channels, sr, skipped_beyond_audio, drift_scale

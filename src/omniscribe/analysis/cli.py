@@ -261,7 +261,7 @@ def main() -> int:
     console.print(f"[dim]Loading {wav_path.name} …[/dim]")
 
     from .analyzer import analyze
-    headers, analyses, channels, sr, skipped = analyze(
+    headers, analyses, channels, sr, skipped, drift_scale = analyze(
         wav_path,
         transcript_path,
         silence_threshold_db=args.silence_threshold_db,
@@ -278,10 +278,15 @@ def main() -> int:
     else:
         threshold_db = args.silence_threshold_db
 
+    if drift_scale is not None:
+        console.print(
+            f"[yellow]Warning: transcript timestamps were wall-clock inflated "
+            f"(old recording, fixed in current version). "
+            f"Applied {drift_scale:.3f}× correction to align with audio.[/yellow]"
+        )
     if skipped:
         console.print(
-            f"[dim]Note: {skipped} segment(s) skipped — timestamps beyond audio length "
-            f"(timestamp drift in old recordings, fixed in current version).[/dim]"
+            f"[dim]Note: {skipped} segment(s) skipped — timestamps beyond audio length.[/dim]"
         )
     print_report(headers, analyses, threshold_db)
 
