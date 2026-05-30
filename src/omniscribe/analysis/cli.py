@@ -280,10 +280,14 @@ def main() -> int:
 
     if drift_scale is not None:
         console.print(
-            f"[yellow]Warning: transcript timestamps were wall-clock inflated "
-            f"(old recording, fixed in current version). "
-            f"Applied {drift_scale:.3f}× correction to align with audio.[/yellow]"
+            f"[bold red]This recording has non-linear timestamp drift ({drift_scale:.2f}× overshoot).[/bold red]"
         )
+        console.print(
+            f"[red]Timestamps were computed from wall-clock time including GPU processing latency, "
+            f"making audio alignment unreliable. Re-record to get accurate analysis.[/red]"
+        )
+        console.print()
+        return 1
     if skipped:
         console.print(
             f"[dim]Note: {skipped} segment(s) skipped — timestamps beyond audio length.[/dim]"

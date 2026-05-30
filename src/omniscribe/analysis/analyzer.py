@@ -133,19 +133,16 @@ def analyze(
 
     headers, segments = parse_transcript(transcript_path)
 
-    # Detect and correct timestamp drift from old wall-clock approach.
-    # When GPU transcription time was included in timestamps, the last
-    # transcript timestamp overshoots the actual audio duration.
-    # Correct by scaling all timestamps linearly to match the WAV length.
+    # Detect timestamp drift from old wall-clock approach.
+    # GPU transcription time was included in timestamps, causing non-linear drift
+    # that cannot be corrected reliably with a linear scale factor.
     drift_scale: float | None = None
     if segments:
         transcript_span = segments[-1].timestamp_secs
         if transcript_span > 0:
             ratio = transcript_span / audio_duration
             if ratio > 1.05:  # more than 5% overshoot → old recording
-                drift_scale = audio_duration / transcript_span
-                for seg in segments:
-                    seg.timestamp_secs = int(seg.timestamp_secs * drift_scale)
+                drift_scale = ratio  # returned as a warning signal, not corrected
 
     # Build per-label index for same-channel next-timestamp lookup
     label_timestamps: dict[str, list[int]] = {}
