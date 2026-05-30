@@ -35,6 +35,7 @@ class SegmentAnalysis:
     rms_db: float                # RMS energy of the window
     silence_ratio: float         # fraction of sub-frames below silence threshold
     peak_db: float               # peak dB in window
+    energy_std_db: float         # std-dev of frame-level energy — low = flat/noise-like
     words_per_sec: float         # transcript density relative to audio window
     suspicion_score: float       # 0.0–1.0
     flags: list[str]             # human-readable reasons
@@ -48,6 +49,17 @@ def _rms_db(audio: np.ndarray) -> float:
 def _peak_db(audio: np.ndarray) -> float:
     peak = float(np.abs(audio).max()) if audio.size else 1e-10
     return float(20 * np.log10(max(peak, 1e-10)))
+
+
+def _energy_std_db(audio: np.ndarray, sr: int, frame_s: float = 0.05) -> float:
+    """Std-dev of frame-level RMS energy (dB). Low value = flat, noise-like profile."""
+    frame = int(sr * frame_s)
+    if audio.size < frame * 2:
+        return 0.0
+    n = audio.size // frame
+    frames = audio[: n * frame].reshape(n, frame)
+    frame_db = 20 * np.log10(np.sqrt(np.mean(frames ** 2, axis=1)).clip(1e-10))
+    return float(np.std(frame_db))
 
 
 def _silence_ratio(audio: np.ndarray, sr: int, threshold_db: float) -> float:
@@ -153,6 +165,7 @@ def analyze(
         rdb = _rms_db(window)
         pdb = _peak_db(window)
         sil = _silence_ratio(window, sr, silence_threshold_db)
+        estd = _energy_std_db(window, sr)
         wps = seg.word_count / max(audio_duration, 0.1)
 
         # Suspicion scoring
@@ -169,6 +182,19 @@ def analyze(
         if sil > 0.85:
             score += 0.3
             flags.append(f"{sil*100:.0f}% of window is silence")
+
+        # Flat energy profile: low std-dev means steady noise, not speech.
+        # Real speech fluctuates ≥ 8 dB as syllables and pauses alternate.
+        # Only apply when audio is clearly audible (above threshold, low silence).
+        if (rdb > silence_threshold_db
+                and sil < 0.5
+                and seg.word_count > 0
+                and estd < 5.0):
+            score += 0.35
+            flags.append(
+                f"flat energy profile: {estd:.1f} dB std-dev "
+                f"(speech typically > 8 dB — likely steady background noise)"
+            )
 
         # active_duration = portion of the window that had real energy
         active_duration = (1.0 - sil) * audio_duration
@@ -215,6 +241,7 @@ def analyze(
             rms_db=rdb,
             silence_ratio=sil,
             peak_db=pdb,
+            energy_std_db=estd,
             words_per_sec=wps,
             suspicion_score=score,
             flags=flags,

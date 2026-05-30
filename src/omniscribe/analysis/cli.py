@@ -94,6 +94,7 @@ def print_report(headers: dict, analyses: list, threshold_db: float) -> None:
         console.print(
             f"  [dim]RMS {a.rms_db:+.1f} dB | "
             f"peak {a.peak_db:+.1f} dB | "
+            f"energy std {a.energy_std_db:.1f} dB | "
             f"{a.silence_ratio*100:.0f}% silence | "
             f"{a.words_per_sec:.1f} w/s | "
             f"window {a.audio_duration_secs:.1f}s[/dim]"
@@ -181,7 +182,7 @@ def export_csv(analyses: list, output_path: Path) -> None:
         w = csv.writer(f)
         w.writerow([
             "timestamp_secs", "label", "word_count",
-            "rms_db", "peak_db", "silence_ratio",
+            "rms_db", "peak_db", "energy_std_db", "silence_ratio",
             "audio_duration_secs", "words_per_sec",
             "expected_speech_secs", "suspicion_score", "flags", "text",
         ])
@@ -189,7 +190,8 @@ def export_csv(analyses: list, output_path: Path) -> None:
             s = a.segment
             w.writerow([
                 s.timestamp_secs, s.label, s.word_count,
-                f"{a.rms_db:.2f}", f"{a.peak_db:.2f}", f"{a.silence_ratio:.3f}",
+                f"{a.rms_db:.2f}", f"{a.peak_db:.2f}", f"{a.energy_std_db:.2f}",
+                f"{a.silence_ratio:.3f}",
                 f"{a.audio_duration_secs:.2f}", f"{a.words_per_sec:.2f}",
                 f"{s.expected_speech_secs:.2f}", f"{a.suspicion_score:.2f}",
                 "; ".join(a.flags), s.text,
