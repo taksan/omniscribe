@@ -170,37 +170,42 @@ def analyze(
             score += 0.3
             flags.append(f"{sil*100:.0f}% of window is silence")
 
-        if seg.word_count > 0 and wps > 4.0:
-            score += 0.3
-            flags.append(f"too dense: {wps:.1f} words/sec (max ~3.5 for fast speech)")
-        elif seg.word_count > 0 and wps > 3.5:
-            score += 0.15
-            flags.append(f"slightly dense: {wps:.1f} words/sec")
+        # active_duration = portion of the window that had real energy
+        active_duration = (1.0 - sil) * audio_duration
 
-        if seg.expected_speech_secs > audio_duration * 1.5 and seg.word_count > 3:
-            score += 0.2
-            flags.append(
-                f"duration mismatch: {seg.expected_speech_secs:.1f}s expected, "
-                f"{audio_duration:.1f}s window"
-            )
+        # Check 1: too many words for available active audio
+        # Uses high thresholds because natural in-sentence pauses compress active_duration.
+        # Only fire when density is extreme relative to the energy that was actually present.
+        if seg.word_count > 3 and active_duration > 0:
+            active_wps = seg.word_count / active_duration
+            if active_wps > 8.0:
+                score += 0.4
+                flags.append(
+                    f"very dense for active audio: {active_wps:.1f} w/s over "
+                    f"{active_duration:.1f}s active ({seg.word_count} words)"
+                )
+            elif active_wps > 6.0:
+                score += 0.2
+                flags.append(
+                    f"dense for active audio: {active_wps:.1f} w/s over "
+                    f"{active_duration:.1f}s active"
+                )
 
-        # Length check: real audio present but text is suspiciously sparse.
-        # Catches hallucinations like "Legenda por Sônia Ruberti" over 13s of audio.
-        # Cap window at 25s — beyond that, silence between speakers is expected.
-        # Skip truncated lines (mid-sentence) and very short utterances (≤3 words).
-        length_check_window = min(audio_duration, 25.0)
-        length_wps = seg.word_count / max(length_check_window, 0.1)
+        # Check 2: few words over long high-energy window
+        # Catches e.g. "Legenda por Sônia Ruberti" over 13s of real audio.
+        # Cap at 25s to ignore long silences between speaker turns.
+        # Skip truncated lines (mid-sentence "...") and very short utterances.
+        active_window_capped = (1.0 - sil) * min(audio_duration, 25.0)
         is_truncated = seg.text.rstrip().endswith("...")
-        if (length_check_window >= 5.0
-                and rdb > silence_threshold_db
-                and sil < 0.5
-                and length_wps < 0.5
+        if (active_window_capped >= 5.0
                 and seg.word_count >= 4
-                and not is_truncated):
+                and not is_truncated
+                and seg.word_count / active_window_capped < 0.5):
             score += 0.4
             flags.append(
                 f"sparse text for active audio: {seg.word_count} words over "
-                f"{length_check_window:.0f}s ({length_wps:.2f} w/s)"
+                f"{active_window_capped:.1f}s of energy "
+                f"({seg.word_count / active_window_capped:.2f} w/s)"
             )
 
         score = min(score, 1.0)
